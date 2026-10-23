@@ -259,12 +259,22 @@ body, html {
   color: #f0dac0;
 }
 
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
 .close-x {
   background: none;
   border: none;
   color: #e0be95;
-  font-size: 22px;
+  font-size: 26px;
   cursor: pointer;
+  padding: 8px 16px;
+  touch-action: manipulation;
 }
 
 #tech-tier-banner {

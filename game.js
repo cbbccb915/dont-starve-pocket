@@ -4910,6 +4910,16 @@ function setupInputs() {
       dismountBeefalo();
     };
   }
+
+  // Modal backdrop click to dismiss
+  ['map-modal', 'diary-modal', 'save-load-modal', 'teleportato-modal', 'chest-modal', 'chester-modal', 'crockpot-modal'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('click', (e) => {
+        if (e.target === el) el.classList.add('hidden');
+      });
+    }
+  });
 }
 
 // --- 16. Game Initialization ---

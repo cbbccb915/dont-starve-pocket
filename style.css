@@ -426,10 +426,11 @@ body, html {
 /* Equipped Slots (Hand, Head, Body) */
 #equipped-display {
   position: absolute;
-  bottom: 78px;
-  left: 10px;
+  bottom: calc(220px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
-  gap: 6px;
+  gap: 8px;
   z-index: 22;
   pointer-events: auto;
 }
@@ -455,7 +456,7 @@ body, html {
 /* Backpack Container Bar */
 #backpack-bar {
   position: absolute;
-  bottom: 74px;
+  bottom: calc(280px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
   background: rgba(26, 19, 14, 0.92);
@@ -483,7 +484,7 @@ body, html {
 /* Bottom Inventory Bar */
 #hud-bottom {
   position: absolute;
-  bottom: 14px;
+  bottom: calc(65px + env(safe-area-inset-bottom, 0px));
   left: 0;
   right: 0;
   display: flex;
@@ -867,30 +868,30 @@ body, html {
 
 #joystick-zone {
   position: absolute;
-  bottom: 80px;
-  left: 15px;
-  width: 130px;
-  height: 130px;
+  bottom: calc(130px + env(safe-area-inset-bottom, 0px));
+  left: 14px;
+  width: 110px;
+  height: 110px;
   pointer-events: auto;
 }
 
 #joystick-base {
-  width: 110px;
-  height: 110px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(60, 45, 30, 0.45) 0%, rgba(20, 15, 10, 0.65) 100%);
   border: 2px solid rgba(160, 120, 75, 0.5);
   position: absolute;
-  top: 10px;
-  left: 10px;
+  top: 5px;
+  left: 5px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 #joystick-stick {
-  width: 48px;
-  height: 48px;
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   background: radial-gradient(circle, #8a643d 0%, #46311d 100%);
   border: 2px solid #caa068;
@@ -900,10 +901,10 @@ body, html {
 
 #action-buttons-zone {
   position: absolute;
-  bottom: 84px;
-  right: 16px;
+  bottom: calc(130px + env(safe-area-inset-bottom, 0px));
+  right: 14px;
   display: flex;
-  gap: 14px;
+  gap: 12px;
   z-index: 30;
   pointer-events: auto;
 }

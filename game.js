@@ -440,6 +440,17 @@ const ITEMS = {
   shadow_manipulator_item: { id: 'shadow_manipulator_item', name: '暗影操纵仪', icon: '🔮🪐', desc: '二阶暗影科技！解锁生命护符、远古铥矿装备。', isPlaceable: 'shadow_manipulator' },
   farmplot_item: { id: 'farmplot_item', name: '改良农田', icon: '🌾🟫', desc: '开辟沃土农田，播撒种子种植高产作物。', isPlaceable: 'farmplot' },
 
+  // Interactive Creature Drops & Biome Curios
+  rabbit_item: { id: 'rabbit_item', name: '活兔子', icon: '🐇', desc: '活蹦乱跳的小野兔，可存放在包裹中，或杀掉获得生小肉。', stack: 10 },
+  tallbird_egg: { id: 'tallbird_egg', name: '高脚鸟蛋', icon: '🥚', desc: '从高脚鸟巢盗取的蓝斑巨蛋！营养极为丰富。', stack: 10, maxFresh: 300, food: { hunger: 25, hp: 3, sanity: 0, eggVal: 4, cookable: 'tallbird_egg_cooked' } },
+  tallbird_egg_cooked: { id: 'tallbird_egg_cooked', name: '煎高脚鸟蛋', icon: '🍳', desc: '金黄嫩滑的巨型煎蛋！+37.5饥饿，+60大额生命！', stack: 10, maxFresh: 250, food: { hunger: 37.5, hp: 60, sanity: 5, eggVal: 4 } },
+  tentacle_spike: { id: 'tentacle_spike', name: '触手尖刺', icon: '🗡️', desc: '击杀潜伏沼泽触手获得的带刺战鞭，攻击力高达 51！', equipSlot: 'hand', durability: 100, weaponDamage: 51 },
+  tentacle_spots: { id: 'tentacle_spots', name: '触手皮', icon: '🩹', desc: '沼泽触手的坚韧滑腻表皮，可用于制作高阶防具。', stack: 40 },
+  frog_legs: { id: 'frog_legs', name: '生青蛙腿', icon: '🍗', desc: '滑腻的蛙腿。微毒，最好煮熟。+12.5饥饿。', stack: 40, maxFresh: 140, food: { hunger: 12.5, hp: -3, sanity: -3, cookable: 'frog_legs_cooked', meatVal: 0.5 } },
+  frog_legs_cooked: { id: 'frog_legs_cooked', name: '香烤蛙腿', icon: '🍖', desc: '外焦里嫩的烤蛙腿！+18.7饥饿，+5生命。', stack: 40, maxFresh: 180, food: { hunger: 18.7, hp: 5, sanity: 2, meatVal: 0.5 } },
+  evil_flower: { id: 'evil_flower', name: '恶魔花瓣', icon: '🥀', desc: '满月受暗影侵蚀的花瓣，采摘消耗理智，可提炼噩梦燃料。', stack: 40, food: { hunger: 0, hp: -5, sanity: -5 } },
+  trinket: { id: 'trinket', name: '远古小玩意', icon: '🏺', desc: '古老坟墓中挖掘出的神秘小文物，交给猪王可换取大量金块！', stack: 40 },
+
   // --- 70h Content Expansion: Survival, Base Automation, Nautical & Celestial ---
   abigail_flower: { id: 'abigail_flower', name: '阿比盖尔之花', icon: '🌺', desc: '温蒂的孪生信物。黄昏或夜间点击使用，召唤姐姐阿比盖尔幽灵助战！', stack: 1 },
   saddle: { id: 'saddle', name: '简易牛鞍', icon: '🏇', desc: '套在驯养度大于20%的皮弗娄牛背上，开启全速骑乘战斗！', stack: 1 },
@@ -1007,7 +1018,10 @@ function onSlotClicked(source, index) {
   const btnUse = document.getElementById('btn-action-use');
   const btnCook = document.getElementById('btn-action-cook');
 
-  if (slot.id === 'abigail_flower') {
+  if (slot.id === 'rabbit_item') {
+    btnUse.innerText = '杀掉 (生小肉)';
+    btnUse.style.display = 'inline-block';
+  } else if (slot.id === 'abigail_flower') {
     btnUse.innerText = '召唤阿比盖尔';
     btnUse.style.display = 'inline-block';
   } else if (slot.id === 'gears' && state.character === 'wx78') {
@@ -1061,6 +1075,17 @@ function useCurrentItem(source, index) {
   if (!slot) return;
   const def = ITEMS[slot.id];
   const p = state.player;
+
+  if (slot.id === 'rabbit_item') {
+    audio.playHit();
+    slot.count--;
+    if (slot.count <= 0) slots[index] = null;
+    addToPlayer('morsel', 1);
+    showToast('🔪 将活野兔屠宰，获得了鲜美的生小肉！');
+    closePopover();
+    updateInventoryUI();
+    return;
+  }
 
   if (slot.id === 'abigail_flower') {
     spawnAbigail();
@@ -1817,6 +1842,99 @@ function resolveCrockpotDish(ingredients) {
 }
 
 // --- 8. World Generation & Ecosystem ---
+const BIOMES = {
+  savanna: {
+    id: 'savanna',
+    name: '稀树草原',
+    groundColor: '#3c311c',
+    turfAccent: '#504124',
+    grassSproutColor: '#bfa154',
+    leafColor: '#a88c3a',
+    pebbleColor: '#5c4e38'
+  },
+  forest: {
+    id: 'forest',
+    name: '落叶常青林',
+    groundColor: '#1c291a',
+    turfAccent: '#273a24',
+    grassSproutColor: '#4f7d45',
+    leafColor: '#965a2d',
+    pebbleColor: '#3c4d38'
+  },
+  rockyland: {
+    id: 'rockyland',
+    name: '嶙峋岩石岭',
+    groundColor: '#2b3136',
+    turfAccent: '#3b434a',
+    grassSproutColor: '#6c7a82',
+    leafColor: '#525a61',
+    pebbleColor: '#707f87'
+  },
+  swamp: {
+    id: 'swamp',
+    name: '泥泞毒沼泽',
+    groundColor: '#211728',
+    turfAccent: '#32233c',
+    grassSproutColor: '#5c3969',
+    leafColor: '#442b54',
+    pebbleColor: '#473652'
+  },
+  graveyard: {
+    id: 'graveyard',
+    name: '迷雾幽魂冢',
+    groundColor: '#232325',
+    turfAccent: '#323236',
+    grassSproutColor: '#52575e',
+    leafColor: '#3e4147',
+    pebbleColor: '#5a6069'
+  },
+  lunar: {
+    id: 'lunar',
+    name: '天体启蒙月岛',
+    groundColor: '#27383e',
+    turfAccent: '#364e57',
+    grassSproutColor: '#6fc9db',
+    leafColor: '#aee8f5',
+    pebbleColor: '#557d8a'
+  },
+  ocean: {
+    id: 'ocean',
+    name: '无尽汪洋',
+    groundColor: '#0b2031',
+    turfAccent: '#14364f',
+    grassSproutColor: '#306b94',
+    leafColor: '#4ea8d6',
+    pebbleColor: '#1b4a6e'
+  }
+};
+
+function getBiomeAt(x, y) {
+  if (state.worldLayer === 'caves') return { id: 'caves', name: '地下深渊洞穴', groundColor: '#120e0d' };
+
+  // Ocean border
+  if (x < 120 || y < 120 || x > state.worldWidth - 120 || y > state.worldHeight - 120) {
+    return BIOMES.ocean;
+  }
+
+  // Lunar Island (3450, 3450)
+  if (dist(x, y, 3450, 3450) < 420) return BIOMES.lunar;
+
+  // Savanna: center (1100, 1100), radius 720
+  if (dist(x, y, 1100, 1100) < 720) return BIOMES.savanna;
+
+  // Rockyland: center (1100, 2750), radius 720
+  if (dist(x, y, 1100, 2750) < 720) return BIOMES.rockyland;
+
+  // Swamp: center (2800, 1100), radius 720
+  if (dist(x, y, 2800, 1100) < 720) return BIOMES.swamp;
+
+  // Graveyard & Pig Village: center (2750, 2750), radius 720
+  if (dist(x, y, 2750, 2750) < 720) return BIOMES.graveyard;
+
+  // Forest everywhere else!
+  return BIOMES.forest;
+}
+
 function dropWorldItem(itemId, x, y, count = 1, extra = {}) {
   state.entities.push({
     type: 'drop',
@@ -1835,104 +1953,140 @@ function initWorld() {
   const W = state.worldWidth;
   const H = state.worldHeight;
 
-  // 1. Deciduous & Evergreen Trees (380 trees)
-  for (let i = 0; i < 380; i++) {
-    const x = Math.random() * (W - 120) + 60;
-    const y = Math.random() * (H - 120) + 60;
-    const size = Math.random() < 0.3 ? 'small' : (Math.random() < 0.7 ? 'medium' : 'large');
-    state.entities.push({
-      type: 'tree',
-      size,
-      hp: size === 'small' ? 3 : (size === 'medium' ? 5 : 8),
-      maxHp: size === 'small' ? 3 : (size === 'medium' ? 5 : 8),
-      x, y,
-      radius: size === 'small' ? 18 : (size === 'medium' ? 24 : 30)
-    });
-  }
-
-  // 2. Boulders & Gold Rocks (240 rocks)
-  for (let i = 0; i < 240; i++) {
-    const x = Math.random() * (W - 120) + 60;
-    const y = Math.random() * (H - 120) + 60;
-    const hasGold = Math.random() < 0.35;
-    state.entities.push({
-      type: 'rock',
-      hp: 4,
-      maxHp: 4,
-      hasGold,
-      x, y,
-      radius: 22
-    });
-  }
-
-  // 3. Berry Bushes (160 bushes)
-  for (let i = 0; i < 160; i++) {
-    state.entities.push({
-      type: 'bush',
-      hasBerries: true,
-      regrowTimer: 0,
-      x: Math.random() * (W - 120) + 60,
-      y: Math.random() * (H - 120) + 60,
-      radius: 18
-    });
-  }
-
-  // 4. Twig Saplings & Grass Tufts (240 each)
-  for (let i = 0; i < 240; i++) {
-    state.entities.push({
-      type: 'sapling',
-      harvestable: true,
-      x: Math.random() * (W - 120) + 60,
-      y: Math.random() * (H - 120) + 60,
-      radius: 14
-    });
-    state.entities.push({
-      type: 'grass_tuft',
-      harvestable: true,
-      x: Math.random() * (W - 120) + 60,
-      y: Math.random() * (H - 120) + 60,
-      radius: 14
-    });
-  }
-
-  // 5. Flowers & Carrots (180 flowers, 40 carrots)
-  for (let i = 0; i < 180; i++) {
-    state.entities.push({
-      type: 'flower',
-      x: Math.random() * (W - 120) + 60,
-      y: Math.random() * (H - 120) + 60,
-      radius: 12
-    });
-  }
-  for (let i = 0; i < 40; i++) {
-    state.entities.push({
-      type: 'planted_carrot',
-      x: Math.random() * (W - 120) + 60,
-      y: Math.random() * (H - 120) + 60,
-      radius: 12
-    });
-  }
-
-  // 6. Savanna Biome: Beefalo Herds (皮弗娄牛群, 20 beefalo)
-  for (let i = 0; i < 20; i++) {
+  // --- 1. Savanna Biome (稀树草原, center 1100, 1100) ---
+  // Beefalo Herds (皮弗娄牛群, 14 beefalo with herd dynamics)
+  for (let i = 0; i < 14; i++) {
     const bx = 1100 + (Math.random() - 0.5) * 600;
     const by = 1100 + (Math.random() - 0.5) * 600;
     state.entities.push({
       type: 'beefalo',
       x: bx, y: by,
       vx: 0, vy: 0,
-      hp: 500,
-      maxHp: 500,
+      hp: 500, maxHp: 500,
       matingSeason: false,
       hasWool: true,
       poopTimer: Math.random() * 80 + 40,
-      timer: Math.random() * 3,
+      isSleeping: false,
+      retaliateTimer: 0,
+      target: null,
       radius: 32
     });
   }
 
-  // 7. Pig Village (猪人村: 猪王 + 4座猪房 + 友好猪人)
-  const pvx = 2600, pvy = 2600;
+  // Rabbit Holes & wild Rabbits (10 burrows)
+  for (let i = 0; i < 10; i++) {
+    const rx = 1100 + (Math.random() - 0.5) * 620;
+    const ry = 1100 + (Math.random() - 0.5) * 620;
+    state.entities.push({
+      type: 'rabbit_hole',
+      x: rx, y: ry,
+      radius: 18
+    });
+    state.entities.push({
+      type: 'rabbit',
+      x: rx + (Math.random() - 0.5) * 80,
+      y: ry + (Math.random() - 0.5) * 80,
+      homeX: rx, homeY: ry,
+      hp: 25, maxHp: 25,
+      inHole: false,
+      inHoleTimer: 0,
+      speed: 35,
+      hopTimer: Math.random() * 2,
+      radius: 14
+    });
+  }
+
+  // Plentiful Grass Tufts in Savanna
+  for (let i = 0; i < 160; i++) {
+    const gx = 1100 + (Math.random() - 0.5) * 650;
+    const gy = 1100 + (Math.random() - 0.5) * 650;
+    state.entities.push({
+      type: 'grass_tuft',
+      harvestable: true,
+      x: gx, y: gy,
+      radius: 14
+    });
+  }
+
+  // --- 2. Rockyland Biome (嶙峋岩石岭, center 1100, 2750) ---
+  // Dense Boulders & Gold Rocks (140 rocks)
+  for (let i = 0; i < 140; i++) {
+    const rx = 1100 + (Math.random() - 0.5) * 650;
+    const ry = 2750 + (Math.random() - 0.5) * 650;
+    state.entities.push({
+      type: 'rock',
+      hp: 4, maxHp: 4,
+      hasGold: Math.random() < 0.45,
+      x: rx, y: ry,
+      radius: 22
+    });
+    if (Math.random() < 0.35) dropWorldItem('flint', rx + 15, ry + 15, 1);
+  }
+
+  // Tallbird Nests with Tallbird Eggs & fierce Tallbirds (4 nests)
+  for (let i = 0; i < 4; i++) {
+    const angle = (i / 4) * Math.PI * 2;
+    const tnx = 1100 + Math.cos(angle) * 260 + (Math.random() - 0.5) * 80;
+    const tny = 2750 + Math.sin(angle) * 260 + (Math.random() - 0.5) * 80;
+    state.entities.push({
+      type: 'tallbird_nest',
+      hasEgg: true,
+      x: tnx, y: tny,
+      radius: 24
+    });
+    state.entities.push({
+      type: 'tallbird',
+      nestX: tnx, nestY: tny,
+      x: tnx + 25, y: tny + 20,
+      hp: 400, maxHp: 400,
+      target: null,
+      attackCooldown: 0,
+      radius: 26
+    });
+  }
+
+  // --- 3. Swamp Biome (泥泞毒沼泽, center 2800, 1100) ---
+  // Lurking Tentacles (8 underground tentacles)
+  for (let i = 0; i < 8; i++) {
+    const tx = 2800 + (Math.random() - 0.5) * 620;
+    const ty = 1100 + (Math.random() - 0.5) * 620;
+    state.entities.push({
+      type: 'tentacle',
+      x: tx, y: ty,
+      submerged: true,
+      activeTimer: 0,
+      attackCooldown: 0,
+      hp: 300, maxHp: 300,
+      radius: 28
+    });
+  }
+
+  // Ponds with hopping Frogs (4 ponds + 8 frogs)
+  for (let i = 0; i < 4; i++) {
+    const px = 2800 + (Math.random() - 0.5) * 550;
+    const py = 1100 + (Math.random() - 0.5) * 550;
+    state.entities.push({
+      type: 'pond',
+      x: px, y: py,
+      fishCount: 10,
+      radius: 40
+    });
+    for (let f = 0; f < 2; f++) {
+      state.entities.push({
+        type: 'frog',
+        pondX: px, pondY: py,
+        x: px + (Math.random() - 0.5) * 70,
+        y: py + (Math.random() - 0.5) * 70,
+        hp: 100, maxHp: 100,
+        target: null,
+        attackCooldown: 0,
+        radius: 14
+      });
+    }
+  }
+
+  // --- 4. Graveyard & Pig Village (迷雾幽魂冢, center 2750, 2750) ---
+  const pvx = 2750, pvy = 2750;
   state.entities.push({ type: 'pig_king', x: pvx, y: pvy, radius: 45 });
   for (let i = 0; i < 4; i++) {
     const angle = (i / 4) * Math.PI * 2;
@@ -1941,18 +2095,41 @@ function initWorld() {
     state.entities.push({ type: 'pig_house', x: hx, y: hy, radius: 32 });
     state.entities.push({
       type: 'pig',
+      houseX: hx, houseY: hy,
       x: hx + 30, y: hy + 20,
       vx: 0, vy: 0,
-      hp: 250,
-      maxHp: 250,
+      hp: 250, maxHp: 250,
       isWerepig: false,
       isFollower: false,
       followTimer: 0,
+      attackCooldown: 0,
+      target: null,
       radius: 20
     });
   }
 
-  // 8. Chester Eye Bone spawn near deciduous border
+  // Gravestones & Ghosts (8 graves + 2 ghosts)
+  for (let i = 0; i < 8; i++) {
+    const gx = pvx - 220 + (Math.random() - 0.5) * 320;
+    const gy = pvy - 220 + (Math.random() - 0.5) * 320;
+    state.entities.push({
+      type: 'grave',
+      dug: false,
+      x: gx, y: gy,
+      radius: 20
+    });
+  }
+  for (let i = 0; i < 2; i++) {
+    state.entities.push({
+      type: 'ghost',
+      x: pvx - 180 + (Math.random() - 0.5) * 200,
+      y: pvy - 180 + (Math.random() - 0.5) * 200,
+      hp: 120, maxHp: 120,
+      radius: 18
+    });
+  }
+
+  // Chester Eye Bone spawn
   dropWorldItem('eyebone', pvx - 120, pvy - 80, 1);
   state.chester = {
     active: false,
@@ -1964,30 +2141,71 @@ function initWorld() {
     type: 'normal'
   };
 
-  // 9. Plugged Cave Sinkhole (落水洞岩塞入口)
-  state.entities.push({
-    type: 'cave_entrance',
-    x: 1400,
-    y: 2200,
-    plugged: true,
-    radius: 36
-  });
-
-  // 10. Natural Ponds (池塘, catch fish)
-  for (let i = 0; i < 3; i++) {
+  // --- 5. Vast Forest Heartland (树木、灌木、树苗、蜘蛛巢) ---
+  for (let i = 0; i < 260; i++) {
+    const x = Math.random() * (W - 140) + 70;
+    const y = Math.random() * (H - 140) + 70;
+    if (dist(x, y, 1100, 2750) < 550 || dist(x, y, 2800, 1100) < 550) continue;
+    const size = Math.random() < 0.3 ? 'small' : (Math.random() < 0.7 ? 'medium' : 'large');
     state.entities.push({
-      type: 'pond',
-      x: 1750 + i * 200,
-      y: 1450 + (i % 2) * 90,
-      fishCount: 10,
-      radius: 42
+      type: 'tree',
+      size,
+      hp: size === 'small' ? 3 : (size === 'medium' ? 5 : 8),
+      maxHp: size === 'small' ? 3 : (size === 'medium' ? 5 : 8),
+      x, y,
+      radius: size === 'small' ? 18 : (size === 'medium' ? 24 : 30)
     });
   }
 
-  // 11. Spiders & Spider Dens (20 dens)
-  for (let i = 0; i < 20; i++) {
-    const dx = Math.random() * (W - 400) + 200;
-    const dy = Math.random() * (H - 400) + 200;
+  // Berry Bushes (120 bushes)
+  for (let i = 0; i < 120; i++) {
+    state.entities.push({
+      type: 'bush',
+      hasBerries: true,
+      regrowTimer: 0,
+      x: Math.random() * (W - 140) + 70,
+      y: Math.random() * (H - 140) + 70,
+      radius: 18
+    });
+  }
+
+  // Twig Saplings & Flowers (160 saplings, 150 flowers)
+  for (let i = 0; i < 160; i++) {
+    state.entities.push({
+      type: 'sapling',
+      harvestable: true,
+      x: Math.random() * (W - 140) + 70,
+      y: Math.random() * (H - 140) + 70,
+      radius: 14
+    });
+  }
+  for (let i = 0; i < 150; i++) {
+    state.entities.push({
+      type: 'flower',
+      x: Math.random() * (W - 140) + 70,
+      y: Math.random() * (H - 140) + 70,
+      radius: 12
+    });
+  }
+
+  // Planted Carrots (35 carrots)
+  for (let i = 0; i < 35; i++) {
+    state.entities.push({
+      type: 'planted_carrot',
+      x: Math.random() * (W - 140) + 70,
+      y: Math.random() * (H - 140) + 70,
+      radius: 12
+    });
+  }
+
+  // Spider Dens (14 dens, safe zone from player spawn)
+  for (let i = 0; i < 14; i++) {
+    let dx = Math.random() * (W - 500) + 250;
+    let dy = Math.random() * (H - 500) + 250;
+    while (dist(dx, dy, 1900, 1900) < 450) {
+      dx = Math.random() * (W - 500) + 250;
+      dy = Math.random() * (H - 500) + 250;
+    }
     state.entities.push({
       type: 'spider_den',
       x: dx, y: dy,
@@ -1997,7 +2215,17 @@ function initWorld() {
     });
   }
 
-  // 12. Maxwell's Teleportato Base & Scattered Relic Machine Parts
+  // --- 6. Special Landmarks & Relics ---
+  // Plugged Cave Sinkhole (落水洞岩塞入口)
+  state.entities.push({
+    type: 'cave_entrance',
+    x: 1400,
+    y: 2200,
+    plugged: true,
+    radius: 36
+  });
+
+  // Maxwell's Teleportato Base & Relic Parts
   state.entities.push({
     type: 'teleportato_base',
     x: 3100,
@@ -2009,7 +2237,7 @@ function initWorld() {
   dropWorldItem('teleportato_box', 700, 900, 1);
   dropWorldItem('teleportato_potato', 2800, 1700, 1);
 
-  // 13. Celestial Lunar Island Biome & Moon Shards
+  // Celestial Lunar Island
   state.entities.push({
     type: 'celestial_altar',
     x: 3450,
@@ -2024,7 +2252,7 @@ function initWorld() {
     if (Math.random() < 0.6) dropWorldItem('moon_shard', mx + 15, my + 15, 1);
   }
 
-  // Starter resources around player
+  // Starter resources around player (1900, 1900 in Forest)
   dropWorldItem('flint', state.player.x + 30, state.player.y + 20, 3);
   dropWorldItem('twig', state.player.x - 30, state.player.y + 10, 4);
   dropWorldItem('grass', state.player.x + 10, state.player.y - 30, 6);
@@ -2220,7 +2448,8 @@ function interactNearest() {
            'campfire', 'firepit', 'science_machine', 'alchemy_engine', 'prestihatitator', 'shadow_manipulator',
            'chest', 'crockpot', 'tent', 'pig_king', 'pig', 'beefalo', 'chester', 'cave_entrance', 'cave_exit',
            'light_flower', 'farmplot', 'stalagmite', 'thulecite_rock', 'pond', 'ancient_station',
-           'drying_rack', 'birdcage', 'beebox', 'boat', 'teleportato_base', 'celestial_altar', 'bird_trap'].includes(ent.type)) {
+           'drying_rack', 'birdcage', 'beebox', 'boat', 'teleportato_base', 'celestial_altar', 'bird_trap',
+           'grave', 'tallbird_nest', 'evil_flower'].includes(ent.type)) {
         const effDist = ent.type === 'drop' ? d - 40 : d;
         if (effDist < minEffectiveDist) {
           minEffectiveDist = effDist;
@@ -2367,14 +2596,82 @@ function interactNearest() {
   } else if (nearest.type === 'crockpot') {
     openCrockpotUI(nearest);
   } else if (nearest.type === 'pig_king') {
-    if (countTotalItem('meat') > 0 || countTotalItem('morsel') > 0) {
+    if (countTotalItem('trinket') > 0) {
+      removeTotalItem('trinket', 1);
+      dropWorldItem('gold', nearest.x + 20, nearest.y + 20, 5);
+      audio.playCraft();
+      showToast('猪王对远古小玩意大喜过望！赏赐了 5 块沉甸甸的金块！🪙🪙🪙');
+    } else if (countTotalItem('meat') > 0 || countTotalItem('morsel') > 0) {
       if (countTotalItem('meat') > 0) removeTotalItem('meat', 1);
       else removeTotalItem('morsel', 1);
       dropWorldItem('gold', nearest.x + 20, nearest.y + 20, 2);
       audio.playCraft();
       showToast('猪王愉快地赏赐了金块！🪙');
     } else {
-      showToast('猪王咕哝着想要肉类！');
+      showToast('猪王咕哝着想要肉类或远古小玩意！');
+    }
+  } else if (nearest.type === 'grave') {
+    if (nearest.dug) {
+      showToast('墓穴已被挖掘一空。');
+      return;
+    }
+    const hasShovel = p.equipped.hand && ITEMS[p.equipped.hand.id]?.toolType === 'shovel';
+    if (!hasShovel) {
+      showToast('需要手持【铲子】方可挖掘墓穴！');
+      return;
+    }
+    audio.playMine();
+    nearest.dug = true;
+    p.equipped.hand.durability -= 1;
+    if (p.equipped.hand.durability <= 0) {
+      p.equipped.hand = null;
+      showToast('铲子损坏了！');
+    }
+    p.sanity = Math.max(0, p.sanity - 10);
+    createHitParticles(nearest.x, nearest.y, '#7f8c8d');
+
+    const roll = Math.random();
+    if (roll < 0.45) dropWorldItem('trinket', nearest.x, nearest.y, 1);
+    else if (roll < 0.7) dropWorldItem('gold', nearest.x, nearest.y, 1);
+    else if (roll < 0.85) dropWorldItem('red_gem', nearest.x, nearest.y, 1);
+    else dropWorldItem('blue_gem', nearest.x, nearest.y, 1);
+
+    if (Math.random() < 0.22) {
+      state.entities.push({
+        type: 'ghost',
+        x: nearest.x + 10,
+        y: nearest.y + 10,
+        hp: 100,
+        maxHp: 100,
+        radius: 18
+      });
+      audio.playHoundGrowl();
+      showToast('⚠️ 幽魂从掘开的古墓中厉啸升起！受到惊吓！(-10理智)');
+    } else {
+      showToast('⚰️ 铲开了墓穴，出土了埋藏的文物！(-10理智)');
+    }
+    updateInventoryUI();
+  } else if (nearest.type === 'tallbird_nest') {
+    if (nearest.hasEgg) {
+      if (addToPlayer('tallbird_egg', 1)) {
+        nearest.hasEgg = false;
+        audio.playPickup();
+        showToast('🥚 盗取了高脚鸟蛋！愤怒的高脚鸟尖锐长啸！');
+        for (const tb of state.entities) {
+          if (tb.type === 'tallbird' && dist(tb.x, tb.y, nearest.x, nearest.y) < 600) {
+            tb.angryEggStolen = true;
+          }
+        }
+      }
+    } else {
+      showToast('巢穴空空如也，鸟蛋已被取走。');
+    }
+  } else if (nearest.type === 'evil_flower') {
+    if (addToPlayer('evil_flower', 1)) {
+      audio.playPickup();
+      p.sanity = Math.max(0, p.sanity - 5);
+      state.entities = state.entities.filter(e => e !== nearest);
+      showToast('采摘了恶魔花瓣 (-5理智)');
     }
   } else if (nearest.type === 'pig') {
     if (countTotalItem('meat') > 0 || countTotalItem('morsel') > 0) {
@@ -2665,7 +2962,8 @@ function attackNearest() {
     'spider', 'hound', 'ice_hound', 'fire_hound', 'treeguard',
     'deerclops', 'bearger', 'moosegoose', 'dragonfly',
     'shadow_creature', 'crawling_horror', 'terrorbeak',
-    'rabbit', 'batilisk', 'slurtle', 'clockwork_knight'
+    'rabbit', 'batilisk', 'slurtle', 'clockwork_knight',
+    'beefalo', 'pig', 'tallbird', 'tentacle', 'frog', 'ghost'
   ];
 
   for (const ent of state.entities) {
@@ -2770,6 +3068,28 @@ function attackNearest() {
     nearest.hp -= dmg;
     createHitParticles(nearest.x, nearest.y, '#e74c3c');
 
+    // Retaliation & Aggro hooks
+    if (nearest.type === 'beefalo') {
+      for (const b of state.entities) {
+        if (b.type === 'beefalo' && dist(b.x, b.y, nearest.x, nearest.y) < 360) {
+          b.alertHerdTimer = 15;
+          b.target = state.player;
+        }
+      }
+      showToast('🐂 皮弗娄牛群愤怒长啸！激发牛群群体复仇！');
+    } else if (nearest.type === 'tentacle') {
+      nearest.submerged = false;
+      nearest.idleTimer = 0;
+    } else if (nearest.type === 'tallbird') {
+      nearest.angryEggStolen = true;
+    } else if (nearest.type === 'frog') {
+      for (const f of state.entities) {
+        if (f.type === 'frog' && dist(f.x, f.y, nearest.x, nearest.y) < 180) {
+          f.aggro = true;
+        }
+      }
+    }
+
     // Shadow Horrors teleport on hit!
     if (nearest.type === 'crawling_horror' || nearest.type === 'terrorbeak') {
       nearest.x += (Math.random() - 0.5) * 180;
@@ -2791,8 +3111,43 @@ function attackNearest() {
     if (state.diary) state.diary.monstersKilled++;
 
     if (nearest.type === 'rabbit') {
-      dropWorldItem('morsel', nearest.x, nearest.y, 1);
-      showToast('猎杀野兔，获得鲜美小肉！');
+      if (Math.random() < 0.6) {
+        dropWorldItem('rabbit_item', nearest.x, nearest.y, 1);
+        showToast('活捉了一只活野兔！');
+      } else {
+        dropWorldItem('morsel', nearest.x, nearest.y, 1);
+        showToast('猎杀野兔，获得鲜美生小肉！');
+      }
+    } else if (nearest.type === 'tallbird') {
+      dropWorldItem('meat', nearest.x, nearest.y, 2);
+      showToast('狩猎了凶猛的高脚鸟！获得 2 块生大肉！');
+    } else if (nearest.type === 'tentacle') {
+      if (Math.random() < 0.5) dropWorldItem('tentacle_spike', nearest.x, nearest.y, 1);
+      if (Math.random() < 0.25) dropWorldItem('tentacle_spots', nearest.x + 10, nearest.y, 1);
+      dropWorldItem('monster_meat', nearest.x - 10, nearest.y, 2);
+      showToast('斩断了沼泽潜伏触手！获得怪物肉与触手战利品！');
+    } else if (nearest.type === 'frog') {
+      dropWorldItem('frog_legs', nearest.x, nearest.y, 1);
+      showToast('捕获了池塘青蛙，获得鲜嫩青蛙腿！');
+    } else if (nearest.type === 'ghost') {
+      dropWorldItem('nightmare_fuel', nearest.x, nearest.y, 1);
+      p.sanity = Math.min(p.maxHp, p.sanity + 15);
+      showToast('超度了荒野幽魂！获得噩梦燃料！');
+    } else if (nearest.type === 'beefalo') {
+      dropWorldItem('meat', nearest.x, nearest.y, 3);
+      dropWorldItem('beefalo_wool', nearest.x + 12, nearest.y, 2);
+      if (Math.random() < 0.33) dropWorldItem('beefalo_horn', nearest.x - 12, nearest.y, 1);
+      showToast('猎杀了皮弗娄牛！获得大量生大肉与厚实牛毛！');
+    } else if (nearest.type === 'pig') {
+      if (nearest.isWerepig) {
+        dropWorldItem('meat', nearest.x, nearest.y, 2);
+        dropWorldItem('pig_skin', nearest.x + 10, nearest.y, 1);
+        showToast('诛杀了狂暴疯猪！获得了丰厚大肉与猪皮！');
+      } else {
+        dropWorldItem('meat', nearest.x, nearest.y, 1);
+        if (Math.random() < 0.5) dropWorldItem('pig_skin', nearest.x + 10, nearest.y, 1);
+        showToast('击败了猪人！获得生肉！');
+      }
     } else if (nearest.type === 'spider') {
       dropWorldItem('silk', nearest.x, nearest.y, 1);
       if (Math.random() < 0.5) dropWorldItem('gland', nearest.x + 10, nearest.y, 1);
@@ -2950,6 +3305,30 @@ function update(dt) {
   // 2. Weather & Temperature Engine
   updateWeatherAndTemp(dt, isNight);
 
+  // Spring Thunderstorm & Dynamic Lightning Strikes
+  if (state.season === 'spring' && state.worldLayer === 'surface') {
+    state.lightningTimer = (state.lightningTimer || 25) - dt;
+    if (state.lightningTimer <= 0) {
+      state.lightningTimer = Math.random() * 25 + 20;
+      audio.playThunder();
+      state.screenFlash = 0.22;
+      if (navigator.vibrate) navigator.vibrate(200);
+
+      const nearbyTrees = state.entities.filter(e => e.type === 'tree' && dist(e.x, e.y, p.x, p.y) < 360);
+      if (nearbyTrees.length > 0) {
+        const struckTree = nearbyTrees[Math.floor(Math.random() * nearbyTrees.length)];
+        createHitParticles(struckTree.x, struckTree.y, '#ffffff');
+        createHitParticles(struckTree.x, struckTree.y, '#ff5722');
+        dropWorldItem('charcoal', struckTree.x, struckTree.y, 2);
+        state.entities = state.entities.filter(e => e !== struckTree);
+        showToast('⚡ 惊雷闪电劈中大树！大树化作焦黑木炭！');
+      } else {
+        createHitParticles(p.x + (Math.random() - 0.5) * 80, p.y + (Math.random() - 0.5) * 80, '#ffffff');
+        showToast('⚡ 狂暴春雷在近旁炸响！');
+      }
+    }
+  }
+
   // 3. Tech Prototyping detection
   checkPrototypingTier();
 
@@ -2994,7 +3373,14 @@ function update(dt) {
   }
 
   // 5. Light check around player
-  let inLight = isDay && state.worldLayer === 'surface';
+  const isFullMoon = (state.day % 16 === 9 || state.day % 16 === 10) && isNight && state.worldLayer === 'surface';
+  let inLight = (isDay || isFullMoon) && state.worldLayer === 'surface';
+  if (isFullMoon && !state.fullMoonToastShown) {
+    state.fullMoonToastShown = true;
+    showToast('🌕 满月升起！皎洁蓝月驱散了查理的阴影，但野性正在苏醒！');
+  } else if (!isFullMoon && state.timeInDay < 85) {
+    state.fullMoonToastShown = false;
+  }
   if (p.equipped.hand && ITEMS[p.equipped.hand.id]?.isLight) {
     inLight = true;
     p.equipped.hand.durability -= dt * 1.0;
@@ -3322,7 +3708,8 @@ function updateContextActionPrompt() {
            'campfire', 'firepit', 'science_machine', 'alchemy_engine', 'prestihatitator', 'shadow_manipulator',
            'chest', 'crockpot', 'tent', 'pig_king', 'pig', 'beefalo', 'chester', 'cave_entrance', 'cave_exit',
            'light_flower', 'farmplot', 'stalagmite', 'thulecite_rock', 'pond', 'ancient_station',
-           'drying_rack', 'birdcage', 'beebox', 'boat', 'teleportato_base', 'celestial_altar', 'bird_trap'].includes(ent.type)) {
+           'drying_rack', 'birdcage', 'beebox', 'boat', 'teleportato_base', 'celestial_altar', 'bird_trap',
+           'grave', 'tallbird_nest', 'evil_flower'].includes(ent.type)) {
         const effDist = ent.type === 'drop' ? d - 40 : d;
         if (effDist < minEffectiveDist) {
           minEffectiveDist = effDist;
@@ -3426,7 +3813,8 @@ function updateContextActionPrompt() {
     'spider', 'hound', 'ice_hound', 'fire_hound', 'treeguard',
     'deerclops', 'bearger', 'moosegoose', 'dragonfly',
     'shadow_creature', 'crawling_horror', 'terrorbeak',
-    'rabbit', 'batilisk', 'slurtle', 'clockwork_knight'
+    'rabbit', 'batilisk', 'slurtle', 'clockwork_knight',
+    'beefalo', 'pig', 'tallbird', 'tentacle', 'frog', 'ghost'
   ];
 
   const hasHostile = state.entities.some(e => hostileTypes.includes(e.type) && dist(p.x, p.y, e.x, e.y) < attackRange);
@@ -3770,39 +4158,351 @@ function updateEntities(dt, isDark) {
     // 10. Treeguard
     if (ent.type === 'treeguard') {
       const d = dist(ent.x, ent.y, p.x, p.y);
-      const angle = Math.atan2(p.y - ent.y, p.x - ent.x);
-      ent.x += Math.cos(angle) * 45 * dt;
-      ent.y += Math.sin(angle) * 45 * dt;
+      if (d < 260) {
+        const angle = Math.atan2(p.y - ent.y, p.x - ent.x);
+        ent.x += Math.cos(angle) * 45 * dt;
+        ent.y += Math.sin(angle) * 45 * dt;
 
-      if (d < 45) {
-        ent.attackCooldown = (ent.attackCooldown || 0) - dt;
-        if (ent.attackCooldown <= 0) {
-          audio.playHit();
-          p.hp -= 45;
-          showToast('树人雷夫挥动巨枝横扫！');
-          ent.attackCooldown = 2.0;
+        if (d < 45) {
+          ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+          if (ent.attackCooldown <= 0) {
+            audio.playHit();
+            p.hp -= 45;
+            showToast('树人雷夫挥动巨枝横扫！');
+            ent.attackCooldown = 2.0;
+          }
         }
       }
     }
 
-    // 11. Friendly Pig follow player
-    if (ent.type === 'pig' && ent.isFollower) {
-      ent.followTimer -= dt;
-      if (ent.followTimer <= 0) ent.isFollower = false;
-      const d = dist(ent.x, ent.y, p.x, p.y);
-      if (d > 60) {
-        const angle = Math.atan2(p.y - ent.y, p.x - ent.x);
-        ent.x += Math.cos(angle) * 110 * dt;
-        ent.y += Math.sin(angle) * 110 * dt;
+    // 11. Pigs (Normal, Follower & Full Moon Werepig)
+    if (ent.type === 'pig') {
+      const isFullMoon = (state.day % 16 === 9 || state.day % 16 === 10) && state.timeInDay >= 85 && state.worldLayer === 'surface';
+      if (isFullMoon && !ent.isWerepig) {
+        ent.isWerepig = true;
+        ent.isFollower = false;
+        createHitParticles(ent.x, ent.y, '#8e24aa');
+        audio.playHoundGrowl();
+        showToast('🌕 满月之力侵蚀！猪人狂暴变异为凶残【疯猪】！');
+      } else if (!isFullMoon && ent.isWerepig) {
+        ent.isWerepig = false;
+        showToast('黎明晨光破晓，疯猪恢复了平静。');
+      }
+
+      if (ent.isWerepig) {
+        const d = dist(ent.x, ent.y, p.x, p.y);
+        if (d < 240) {
+          const angle = Math.atan2(p.y - ent.y, p.x - ent.x);
+          ent.x += Math.cos(angle) * 125 * dt;
+          ent.y += Math.sin(angle) * 125 * dt;
+
+          if (d < 32) {
+            ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+            if (ent.attackCooldown <= 0) {
+              audio.playHit();
+              let dmg = 40;
+              if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
+                dmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+              }
+              p.hp -= dmg;
+              p.sanity -= 8;
+              showToast('疯猪利爪疯狂撕扯！(-40生命)');
+              ent.attackCooldown = 1.25;
+            }
+          }
+        } else {
+          ent.wanderTimer = (ent.wanderTimer || 2) - dt;
+          if (ent.wanderTimer <= 0) {
+            ent.wanderTimer = Math.random() * 2 + 1;
+            ent.wanderAngle = Math.random() * Math.PI * 2;
+          }
+          if (ent.wanderAngle !== undefined) {
+            ent.x += Math.cos(ent.wanderAngle) * 35 * dt;
+            ent.y += Math.sin(ent.wanderAngle) * 35 * dt;
+          }
+        }
+      } else if (ent.isFollower) {
+        ent.followTimer -= dt;
+        if (ent.followTimer <= 0) ent.isFollower = false;
+        const d = dist(ent.x, ent.y, p.x, p.y);
+        if (d > 60) {
+          const angle = Math.atan2(p.y - ent.y, p.x - ent.x);
+          ent.x += Math.cos(angle) * 110 * dt;
+          ent.y += Math.sin(angle) * 110 * dt;
+        }
+        if (d < 120) {
+          p.sanity = Math.min(p.maxSanity, p.sanity + dt * 0.09);
+        }
+      } else {
+        if (state.timeInDay >= 60 && state.worldLayer === 'surface') {
+          let nearestHouse = null;
+          let minHouseDist = 9999;
+          for (const h of state.entities) {
+            if (h.type === 'pig_house') {
+              const dh = dist(ent.x, ent.y, h.x, h.y);
+              if (dh < minHouseDist) {
+                minHouseDist = dh;
+                nearestHouse = h;
+              }
+            }
+          }
+          if (nearestHouse && minHouseDist > 30) {
+            const angle = Math.atan2(nearestHouse.y - ent.y, nearestHouse.x - ent.x);
+            ent.x += Math.cos(angle) * 95 * dt;
+            ent.y += Math.sin(angle) * 95 * dt;
+          }
+        }
       }
     }
 
-    // 12. Beefalo poop drop
+    // 12. Beefalo (Herd Retaliation, Spring Rut, Night Sleeping)
     if (ent.type === 'beefalo') {
-      ent.poopTimer -= dt;
+      ent.poopTimer = (ent.poopTimer || 60) - dt;
       if (ent.poopTimer <= 0) {
         ent.poopTimer = Math.random() * 90 + 50;
         dropWorldItem('manure', ent.x, ent.y + 15, 1);
+      }
+
+      const isSpring = state.season === 'spring';
+      ent.inRut = isSpring;
+
+      const isNight = state.timeInDay >= 85 && state.worldLayer === 'surface';
+      const d = dist(ent.x, ent.y, p.x, p.y);
+      const isWearingBeefaloHat = p.equipped.head && p.equipped.head.id === 'beefalo_hat';
+      const shouldAggro = (ent.alertHerdTimer > 0) || (ent.inRut && d < 140 && !isWearingBeefaloHat);
+
+      if (ent.alertHerdTimer > 0) ent.alertHerdTimer -= dt;
+
+      if (shouldAggro) {
+        ent.sleeping = false;
+        const angle = Math.atan2(p.y - ent.y, p.x - ent.x);
+        ent.x += Math.cos(angle) * 115 * dt;
+        ent.y += Math.sin(angle) * 115 * dt;
+
+        if (d < 36) {
+          ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+          if (ent.attackCooldown <= 0) {
+            audio.playBeefaloGrunt();
+            audio.playHit();
+            let dmg = 34;
+            if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
+              dmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+            }
+            p.hp -= dmg;
+            showToast('受到皮弗娄牛尖角顶撞！(-34生命)');
+            ent.attackCooldown = 1.8;
+          }
+        }
+      } else if (isNight && !ent.inRut) {
+        ent.sleeping = true;
+      } else {
+        ent.sleeping = false;
+      }
+    }
+
+    // 13. Wild Rabbits (Burrow fleeing, hiding in hole, hopping, eating ground carrots)
+    if (ent.type === 'rabbit') {
+      if (ent.hidden) {
+        ent.hiddenTimer = (ent.hiddenTimer || 15) - dt;
+        if (ent.hiddenTimer <= 0) {
+          ent.hidden = false;
+          ent.x = ent.homeX || ent.x;
+          ent.y = ent.homeY || ent.y;
+        }
+        continue;
+      }
+
+      const d = dist(ent.x, ent.y, p.x, p.y);
+      if (d < 125) {
+        const hx = ent.homeX || ent.x;
+        const hy = ent.homeY || ent.y;
+        const dh = dist(ent.x, ent.y, hx, hy);
+        if (dh < 18) {
+          ent.hidden = true;
+          ent.hiddenTimer = 15;
+          createHitParticles(ent.x, ent.y, '#8d6e63');
+          continue;
+        } else {
+          const angle = Math.atan2(hy - ent.y, hx - ent.x);
+          ent.x += Math.cos(angle) * 135 * dt;
+          ent.y += Math.sin(angle) * 135 * dt;
+        }
+      } else {
+        ent.hopTimer = (ent.hopTimer || 2) - dt;
+        if (ent.hopTimer <= 0) {
+          ent.hopTimer = Math.random() * 2.5 + 1.2;
+          const hx = ent.homeX || ent.x;
+          const hy = ent.homeY || ent.y;
+          const wanderAngle = Math.random() * Math.PI * 2;
+          const wanderDist = Math.random() * 60;
+          ent.tx = hx + Math.cos(wanderAngle) * wanderDist;
+          ent.ty = hy + Math.sin(wanderAngle) * wanderDist;
+        }
+        if (ent.tx !== undefined) {
+          const dx = ent.tx - ent.x;
+          const dy = ent.ty - ent.y;
+          if (Math.hypot(dx, dy) > 5) {
+            const angle = Math.atan2(dy, dx);
+            ent.x += Math.cos(angle) * 45 * dt;
+            ent.y += Math.sin(angle) * 45 * dt;
+          }
+        }
+      }
+    }
+
+    // 14. Tallbirds (Nest defense, peck & kite AI)
+    if (ent.type === 'tallbird') {
+      const nx = ent.nestX || ent.x;
+      const ny = ent.nestY || ent.y;
+      const dPlayerNest = dist(p.x, p.y, nx, ny);
+      const dPlayer = dist(p.x, p.y, ent.x, ent.y);
+
+      const guardRadius = ent.angryEggStolen ? 600 : 180;
+      if (dPlayerNest < guardRadius || ent.angryEggStolen) {
+        if (ent.kiteTimer > 0) {
+          ent.kiteTimer -= dt;
+          const retreatAngle = Math.atan2(ent.y - p.y, ent.x - p.x);
+          ent.x += Math.cos(retreatAngle) * 75 * dt;
+          ent.y += Math.sin(retreatAngle) * 75 * dt;
+        } else {
+          const lungeAngle = Math.atan2(p.y - ent.y, p.x - ent.x);
+          ent.x += Math.cos(lungeAngle) * 150 * dt;
+          ent.y += Math.sin(lungeAngle) * 150 * dt;
+
+          if (dPlayer < 36) {
+            audio.playHit();
+            let dmg = 50;
+            if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
+              dmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+            }
+            p.hp -= dmg;
+            showToast('高脚鸟锐利铁喙猛烈啄击！(-50生命)');
+            ent.kiteTimer = 1.35;
+          }
+        }
+      } else {
+        const dNest = dist(ent.x, ent.y, nx, ny);
+        if (dNest > 20) {
+          const angle = Math.atan2(ny - ent.y, nx - ent.x);
+          ent.x += Math.cos(angle) * 70 * dt;
+          ent.y += Math.sin(angle) * 70 * dt;
+        }
+      }
+    }
+
+    // 15. Swamp Tentacles (Lurk under mud, emerge spike whip)
+    if (ent.type === 'tentacle') {
+      const d = dist(p.x, p.y, ent.x, ent.y);
+      if (ent.submerged === undefined) ent.submerged = true;
+
+      if (ent.submerged) {
+        if (d < 72) {
+          ent.submerged = false;
+          ent.idleTimer = 0;
+          audio.playHit();
+          showToast('⚠️ 沼泽潜伏触手猛然破泥而出！');
+        }
+      } else {
+        if (d < 90) {
+          p.sanity = Math.max(0, p.sanity - dt * 0.67);
+        }
+
+        if (d < 75) {
+          ent.idleTimer = 0;
+          ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+          if (ent.attackCooldown <= 0) {
+            audio.playHit();
+            let dmg = 34;
+            if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
+              dmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+            }
+            p.hp -= dmg;
+            createHitParticles(p.x, p.y, '#8e24aa');
+            showToast('触手带刺鞭笞重创了你！(-34生命)');
+            ent.attackCooldown = 0.85;
+          }
+        } else {
+          ent.idleTimer = (ent.idleTimer || 0) + dt;
+          if (ent.idleTimer > 2.8) {
+            ent.submerged = true;
+            ent.idleTimer = 0;
+          }
+        }
+      }
+    }
+
+    // 16. Frogs (Rain aggro, Tongue lash item-knockout)
+    if (ent.type === 'frog') {
+      const isRain = state.weather === 'rain' || state.season === 'spring';
+      const d = dist(p.x, p.y, ent.x, ent.y);
+
+      if (isRain || ent.aggro) {
+        if (d < 180) {
+          const angle = Math.atan2(p.y - ent.y, p.x - ent.x);
+          ent.x += Math.cos(angle) * 95 * dt;
+          ent.y += Math.sin(angle) * 95 * dt;
+
+          if (d < 65) {
+            ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+            if (ent.attackCooldown <= 0) {
+              audio.playHit();
+              p.hp -= 10;
+              const occupiedIdx = p.inventory.findIndex(s => s !== null);
+              if (occupiedIdx !== -1) {
+                const knocked = p.inventory[occupiedIdx];
+                p.inventory[occupiedIdx] = null;
+                dropWorldItem(knocked.id, p.x + (Math.random() - 0.5) * 35, p.y + (Math.random() - 0.5) * 35, knocked.count);
+                audio.playPickup();
+                showToast(`🐸 青蛙长舌飞甩！将【${ITEMS[knocked.id].name}】抽落到了地上！`);
+                updateInventoryUI();
+              } else {
+                showToast('受到青蛙长舌抽击！(-10生命)');
+              }
+              ent.attackCooldown = 1.6;
+            }
+          }
+        }
+      } else {
+        ent.hopTimer = (ent.hopTimer || 2) - dt;
+        if (ent.hopTimer <= 0) {
+          ent.hopTimer = Math.random() * 3 + 1.5;
+          const hopAngle = Math.random() * Math.PI * 2;
+          ent.x += Math.cos(hopAngle) * 25;
+          ent.y += Math.sin(hopAngle) * 25;
+        }
+      }
+    }
+
+    // 17. Ghosts (Sanity drain aura, touch damage)
+    if (ent.type === 'ghost') {
+      const d = dist(p.x, p.y, ent.x, ent.y);
+      if (d < 220) {
+        p.sanity = Math.max(0, p.sanity - dt * 0.42);
+
+        const angle = Math.atan2(p.y - ent.y, p.x - ent.x);
+        ent.x += Math.cos(angle) * 52 * dt;
+        ent.y += Math.sin(angle) * 52 * dt;
+
+        if (d < 28) {
+          ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+          if (ent.attackCooldown <= 0) {
+            audio.playHoundGrowl();
+            p.hp -= 15;
+            p.sanity = Math.max(0, p.sanity - 5);
+            showToast('荒野幽魂冰冷穿透了身躯！(-15生命, -5理智)');
+            ent.attackCooldown = 1.5;
+          }
+        }
+      } else {
+        ent.wanderTimer = (ent.wanderTimer || 3) - dt;
+        if (ent.wanderTimer <= 0) {
+          ent.wanderTimer = Math.random() * 3 + 2;
+          ent.wanderAngle = Math.random() * Math.PI * 2;
+        }
+        if (ent.wanderAngle !== undefined) {
+          ent.x += Math.cos(ent.wanderAngle) * 18 * dt;
+          ent.y += Math.sin(ent.wanderAngle) * 18 * dt;
+        }
       }
     }
   }
@@ -3827,7 +4527,8 @@ function updateHUD() {
   document.getElementById('val-sanity').innerText = `${Math.ceil(p.sanity)}/${p.maxSanity}`;
   document.getElementById('bar-sanity').style.width = `${(p.sanity / p.maxSanity) * 100}%`;
 
-  const layerTag = state.worldLayer === 'caves' ? '🕯️ 地下洞穴 · ' : '';
+  const isFullMoon = (state.day % 16 === 9 || state.day % 16 === 10) && state.timeInDay >= 85 && state.worldLayer === 'surface';
+  const layerTag = state.worldLayer === 'caves' ? '🕯️ 地下洞穴 · ' : (isFullMoon ? '🌕 满月狂欢 · ' : '');
   document.getElementById('day-counter').innerText = `${layerTag}第 ${state.day} 天`;
 
   // Secondary gauges
@@ -3905,9 +4606,64 @@ function drawTerrainDetails() {
 
   for (let x = startX; x < endX; x += 80) {
     for (let y = startY; y < endY; y += 80) {
-      // Deterministic hash based on world coordinate
+      const biome = getBiomeAt(x + 40, y + 40);
+
+      // Fill tile with biome-specific ground color
+      ctx.fillStyle = biome.groundColor;
+      ctx.fillRect(x, y, 80, 80);
+
       const h1 = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453) % 1;
       const h2 = Math.abs(Math.cos(x * 39.3456 + y * 19.876) * 23421.631) % 1;
+
+      // Biome-specific turf patterns & textures
+      if (biome.id === 'savanna') {
+        ctx.strokeStyle = biome.turfAccent;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x + 10, y + 25); ctx.lineTo(x + 35, y + 20);
+        ctx.moveTo(x + 45, y + 60); ctx.lineTo(x + 70, y + 55);
+        ctx.stroke();
+      } else if (biome.id === 'rockyland') {
+        ctx.strokeStyle = biome.turfAccent;
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.moveTo(x + 20, y + 30); ctx.lineTo(x + 40, y + 50); ctx.lineTo(x + 65, y + 40);
+        ctx.stroke();
+      } else if (biome.id === 'swamp') {
+        ctx.fillStyle = biome.turfAccent;
+        ctx.beginPath();
+        ctx.ellipse(x + 40, y + 40, 24, 14, h1 * Math.PI, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#4a148c';
+        ctx.beginPath();
+        ctx.arc(x + 30 + h1 * 20, y + 30 + h2 * 20, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (biome.id === 'graveyard') {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.beginPath();
+        ctx.ellipse(x + 40, y + 40, 32, 18, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (biome.id === 'ocean') {
+        ctx.strokeStyle = 'rgba(78, 168, 214, 0.35)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x + 40, y + 40, 22, 0, Math.PI);
+        ctx.stroke();
+      } else if (biome.id === 'lunar') {
+        ctx.fillStyle = 'rgba(111, 201, 219, 0.15)';
+        ctx.beginPath();
+        ctx.arc(x + 40, y + 40, 15, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // Seasonal tint overlays
+      if (isWinter) {
+        ctx.fillStyle = 'rgba(236, 240, 241, 0.28)';
+        ctx.fillRect(x, y, 80, 80);
+      } else if (isSummer) {
+        ctx.fillStyle = 'rgba(244, 81, 30, 0.06)';
+        ctx.fillRect(x, y, 80, 80);
+      }
 
       const px = x + (h1 * 60) + 10;
       const py = y + (h2 * 60) + 10;
@@ -3919,13 +4675,13 @@ function drawTerrainDetails() {
         ctx.ellipse(px + 1, py + 1, 3.5, 2, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.fillStyle = isCaves ? '#3d3838' : (isWinter ? '#78828a' : '#4a3f35');
+        ctx.fillStyle = isCaves ? '#3d3838' : (isWinter ? '#78828a' : (biome.pebbleColor || '#4a3f35'));
         ctx.beginPath();
         ctx.ellipse(px, py, 3, 2, 0.2, 0, Math.PI * 2);
         ctx.fill();
       } else if (h1 < 0.55) {
         // Tiny grass / lichen sprouts
-        ctx.strokeStyle = isCaves ? '#2e4530' : (isWinter ? '#5a6b73' : (isSpring ? '#4caf50' : '#334425'));
+        ctx.strokeStyle = isCaves ? '#2e4530' : (isWinter ? '#5a6b73' : (isSpring ? '#4caf50' : (biome.grassSproutColor || '#334425')));
         ctx.lineWidth = 1.4;
         ctx.beginPath();
         ctx.moveTo(px, py);
@@ -4685,6 +5441,12 @@ function render() {
 
   ctx.restore();
   renderLighting();
+
+  if (state.screenFlash > 0) {
+    ctx.fillStyle = `rgba(255, 255, 255, ${Math.min(0.85, state.screenFlash * 4.2)})`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    state.screenFlash -= 0.025;
+  }
 }
 
 function drawPlayer() {
@@ -5053,11 +5815,19 @@ function drawEntity(ent) {
     ctx.arc(10, 5, 6, 0, Math.PI * 2);
     ctx.fill();
   } else if (ent.type === 'beefalo') {
-    ctx.fillStyle = '#3e2723';
+    ctx.fillStyle = ent.hasWool === false ? '#5d4037' : '#3e2723';
     ctx.beginPath();
     ctx.ellipse(0, 0, 32, 22, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = '#f5f5f5';
+
+    if (ent.inRut) {
+      ctx.fillStyle = '#d32f2f';
+      ctx.beginPath();
+      ctx.arc(22, 0, 10, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.strokeStyle = '#eceff1';
     ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.moveTo(-15, -12);
@@ -5065,14 +5835,85 @@ function drawEntity(ent) {
     ctx.moveTo(15, -12);
     ctx.lineTo(24, -28);
     ctx.stroke();
-  } else if (ent.type === 'pig' || ent.type === 'pig_king') {
-    ctx.fillStyle = '#f8bbd0';
+
+    if (ent.sleeping) {
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-10, -5); ctx.lineTo(-4, -5);
+      ctx.moveTo(4, -5); ctx.lineTo(10, -5);
+      ctx.stroke();
+      ctx.fillStyle = '#90caf9';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('Zzz', -6, -32 - ((Date.now() / 300) % 8));
+    } else if (ent.inRut) {
+      ctx.fillStyle = '#ff1744';
+      ctx.fillRect(-8, -8, 4, 4);
+      ctx.fillRect(4, -8, 4, 4);
+    }
+
+    if (ent.saddled) {
+      ctx.fillStyle = '#d84315';
+      ctx.fillRect(-10, -18, 20, 10);
+      ctx.strokeStyle = '#ffd700';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(-10, -18, 20, 10);
+    }
+  } else if (ent.type === 'pig_king') {
+    ctx.fillStyle = '#f48fb1';
     ctx.beginPath();
-    ctx.ellipse(0, 0, 20, 24, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 0, 32, 34, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#333';
-    ctx.fillRect(-6, -8, 3, 3);
-    ctx.fillRect(3, -8, 3, 3);
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath();
+    ctx.moveTo(-16, -30);
+    ctx.lineTo(-10, -42);
+    ctx.lineTo(0, -32);
+    ctx.lineTo(10, -42);
+    ctx.lineTo(16, -30);
+    ctx.closePath();
+    ctx.fill();
+  } else if (ent.type === 'pig') {
+    if (ent.isWerepig) {
+      ctx.fillStyle = '#311432';
+      ctx.beginPath();
+      ctx.ellipse(0, -6, 24, 28, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#110514';
+      ctx.beginPath();
+      ctx.moveTo(-12, -30); ctx.lineTo(-2, -42); ctx.lineTo(8, -30);
+      ctx.fill();
+      ctx.fillStyle = '#ff1744';
+      ctx.fillRect(-8, -12, 4, 4);
+      ctx.fillRect(4, -12, 4, 4);
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.moveTo(-5, 4); ctx.lineTo(-3, 10); ctx.lineTo(-1, 4);
+      ctx.moveTo(1, 4); ctx.lineTo(3, 10); ctx.lineTo(5, 4);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = '#f8bbd0';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 20, 24, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#8d6e63';
+      ctx.fillRect(-18, 6, 36, 16);
+      ctx.fillStyle = '#f48fb1';
+      ctx.beginPath();
+      ctx.ellipse(0, -2, 8, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#880e4f';
+      ctx.fillRect(-4, -3, 2, 2);
+      ctx.fillRect(2, -3, 2, 2);
+      ctx.fillStyle = '#212121';
+      ctx.fillRect(-7, -10, 3, 3);
+      ctx.fillRect(4, -10, 3, 3);
+      if (ent.isFollower) {
+        ctx.fillStyle = '#e91e63';
+        ctx.font = '12px sans-serif';
+        ctx.fillText('❤️', -5, -28);
+      }
+    }
   } else if (ent.type === 'hound' || ent.type === 'ice_hound' || ent.type === 'fire_hound') {
     ctx.fillStyle = ent.type === 'ice_hound' ? '#00bcd4' : (ent.type === 'fire_hound' ? '#e65100' : '#212121');
     ctx.beginPath();
@@ -5306,6 +6147,166 @@ function drawEntity(ent) {
       ctx.textAlign = 'center';
       ctx.fillText('🐦', 0, -2);
     }
+  } else if (ent.type === 'rabbit') {
+    if (!ent.hidden) {
+      ctx.fillStyle = state.season === 'winter' ? '#eceff1' : '#bcaaa4';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 12, 9, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffcdd2';
+      ctx.beginPath();
+      ctx.ellipse(-4, -11, 2.5, 7, -0.2, 0, Math.PI * 2);
+      ctx.ellipse(2, -11, 2.5, 7, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#212121';
+      ctx.fillRect(-6, -4, 2, 2);
+      ctx.fillStyle = '#fff';
+      ctx.beginPath();
+      ctx.arc(10, 2, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (ent.type === 'rabbit_hole') {
+    ctx.fillStyle = '#3e2723';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 16, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#1a100b';
+    ctx.beginPath();
+    ctx.ellipse(0, -2, 9, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (ent.type === 'tallbird') {
+    ctx.strokeStyle = '#455a64';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-6, 0); ctx.lineTo(-8, 22);
+    ctx.moveTo(6, 0); ctx.lineTo(8, 22);
+    ctx.stroke();
+    ctx.fillStyle = '#1a237e';
+    ctx.beginPath();
+    ctx.arc(0, -10, 20, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffeb3b';
+    ctx.beginPath();
+    ctx.arc(0, -14, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.fillRect(-1.5, -18, 3, 8);
+    ctx.fillStyle = '#ff9800';
+    ctx.beginPath();
+    ctx.moveTo(-8, -6);
+    ctx.lineTo(-26, -10);
+    ctx.lineTo(-8, -14);
+    ctx.closePath();
+    ctx.fill();
+  } else if (ent.type === 'tallbird_nest') {
+    ctx.strokeStyle = '#4e342e';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 24, 14, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = '#3e2723';
+    ctx.fill();
+    if (ent.hasEgg) {
+      ctx.fillStyle = '#81d4fa';
+      ctx.beginPath();
+      ctx.ellipse(0, -4, 9, 13, 0.1, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#0288d1';
+      ctx.fillRect(-3, -7, 2, 2);
+      ctx.fillRect(2, -2, 2, 2);
+    }
+  } else if (ent.type === 'tentacle') {
+    if (ent.submerged) {
+      ctx.strokeStyle = 'rgba(74, 20, 140, 0.5)';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 18, 10, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = '#4a148c';
+      ctx.beginPath();
+      ctx.arc(4, 2, 3, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = '#4a148c';
+      ctx.beginPath();
+      ctx.moveTo(-10, 10);
+      ctx.quadraticCurveTo(-14, -25, -4, -48);
+      ctx.quadraticCurveTo(8, -52, 6, -42);
+      ctx.quadraticCurveTo(12, -20, 10, 10);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#eceff1';
+      ctx.beginPath();
+      ctx.moveTo(-12, -20); ctx.lineTo(-20, -24); ctx.lineTo(-10, -28);
+      ctx.moveTo(10, -15); ctx.lineTo(18, -18); ctx.lineTo(8, -23);
+      ctx.fill();
+      ctx.fillStyle = '#ea80fc';
+      ctx.fillRect(-4, -36, 4, 4);
+      ctx.fillRect(0, -18, 5, 5);
+    }
+  } else if (ent.type === 'frog') {
+    ctx.fillStyle = '#388e3c';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 14, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffeb3b';
+    ctx.beginPath();
+    ctx.arc(-6, -8, 4, 0, Math.PI * 2);
+    ctx.arc(6, -8, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#000';
+    ctx.fillRect(-8, -9, 4, 2);
+    ctx.fillRect(4, -9, 4, 2);
+  } else if (ent.type === 'ghost') {
+    ctx.fillStyle = 'rgba(224, 247, 250, 0.78)';
+    ctx.beginPath();
+    ctx.arc(0, -12, 14, Math.PI, 0);
+    ctx.lineTo(14, 8);
+    ctx.lineTo(8, 4);
+    ctx.lineTo(0, 10);
+    ctx.lineTo(-8, 4);
+    ctx.lineTo(-14, 8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#102027';
+    ctx.beginPath();
+    ctx.ellipse(-5, -12, 3, 5, 0, 0, Math.PI * 2);
+    ctx.ellipse(5, -12, 3, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (ent.type === 'grave') {
+    ctx.fillStyle = '#455a64';
+    ctx.beginPath();
+    ctx.arc(0, -22, 12, Math.PI, 0);
+    ctx.lineTo(12, 2);
+    ctx.lineTo(-12, 2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#263238';
+    ctx.fillRect(-2, -26, 4, 16);
+    ctx.fillRect(-6, -22, 12, 4);
+    if (ent.dug) {
+      ctx.fillStyle = '#1b120c';
+      ctx.beginPath();
+      ctx.ellipse(0, 8, 16, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = '#5d4037';
+      ctx.beginPath();
+      ctx.ellipse(0, 6, 14, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (ent.type === 'evil_flower') {
+    ctx.fillStyle = '#4a148c';
+    for (let pIdx = 0; pIdx < 5; pIdx++) {
+      const pAngle = (pIdx / 5) * Math.PI * 2;
+      ctx.beginPath();
+      ctx.arc(Math.cos(pAngle) * 5, Math.sin(pAngle) * 5, 4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#8e24aa';
+    ctx.beginPath();
+    ctx.arc(0, 0, 3, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   ctx.restore();
@@ -5316,6 +6317,15 @@ function renderLighting() {
   const isDay = state.timeInDay < 60;
   const isDusk = state.timeInDay >= 60 && state.timeInDay < 85;
   const isNight = state.timeInDay >= 85;
+  const isFullMoon = (state.day % 16 === 9 || state.day % 16 === 10) && isNight && !isCaves;
+
+  if (isFullMoon) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(15, 32, 65, 0.45)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+    return;
+  }
 
   let darknessAlpha = 0;
   if (isCaves) {
@@ -5390,36 +6400,67 @@ function renderFullMap() {
   const scaleX = mapCanvas.width / state.worldWidth;
   const scaleY = mapCanvas.height / state.worldHeight;
 
-  // Background
-  mctx.fillStyle = state.worldLayer === 'caves' ? '#120d0b' : '#221a14';
-  mctx.fillRect(0, 0, mapCanvas.width, mapCanvas.height);
+  // Render Full Biome Cartography grid
+  const step = 8;
+  for (let mx = 0; mx < mapCanvas.width; mx += step) {
+    for (let my = 0; my < mapCanvas.height; my += step) {
+      const wx = (mx / mapCanvas.width) * state.worldWidth;
+      const wy = (my / mapCanvas.height) * state.worldHeight;
+      const b = getBiomeAt(wx, wy);
+      mctx.fillStyle = b.groundColor;
+      mctx.fillRect(mx, my, step, step);
+    }
+  }
 
   // Entities on map
   for (const ent of state.entities) {
     const mx = ent.x * scaleX;
     const my = ent.y * scaleY;
     if (ent.type === 'beefalo') {
-      mctx.fillStyle = '#f39c12';
-      mctx.fillRect(mx, my, 4, 4);
-    } else if (ent.type === 'pig_king' || ent.type === 'pig_house') {
+      mctx.fillStyle = '#bcaaa4';
+      mctx.fillRect(mx - 2, my - 2, 5, 5);
+    } else if (ent.type === 'pig_king') {
       mctx.fillStyle = '#e91e63';
-      mctx.fillRect(mx, my, 5, 5);
+      mctx.fillRect(mx - 4, my - 4, 8, 8);
+    } else if (ent.type === 'pig_house' || ent.type === 'pig') {
+      mctx.fillStyle = '#f48fb1';
+      mctx.fillRect(mx - 2, my - 2, 4, 4);
+    } else if (ent.type === 'tallbird' || ent.type === 'tallbird_nest') {
+      mctx.fillStyle = '#0288d1';
+      mctx.fillRect(mx - 2, my - 2, 4, 4);
+    } else if (ent.type === 'tentacle') {
+      mctx.fillStyle = '#7b1fa2';
+      mctx.fillRect(mx - 2, my - 2, 4, 4);
+    } else if (ent.type === 'grave') {
+      mctx.fillStyle = '#90a4ae';
+      mctx.fillRect(mx - 1, my - 1, 3, 3);
+    } else if (ent.type === 'pond') {
+      mctx.fillStyle = '#00bcd4';
+      mctx.beginPath();
+      mctx.arc(mx, my, 4, 0, Math.PI * 2);
+      mctx.fill();
     } else if (ent.type === 'science_machine' || ent.type === 'alchemy_engine' || ent.type === 'prestihatitator' || ent.type === 'ancient_station') {
-      mctx.fillStyle = '#00e5ff';
-      mctx.fillRect(mx, my, 6, 6);
+      mctx.fillStyle = '#ffd700';
+      mctx.fillRect(mx - 3, my - 3, 6, 6);
     } else if (ent.type === 'cave_entrance' || ent.type === 'cave_exit') {
       mctx.fillStyle = '#9c27b0';
-      mctx.fillRect(mx, my, 6, 6);
+      mctx.fillRect(mx - 3, my - 3, 6, 6);
+    } else if (ent.type === 'celestial_altar') {
+      mctx.fillStyle = '#80deea';
+      mctx.fillRect(mx - 3, my - 3, 6, 6);
     }
   }
 
-  // Player position
+  // Player position marker with white border
   const px = state.player.x * scaleX;
   const py = state.player.y * scaleY;
   mctx.fillStyle = '#ff1744';
   mctx.beginPath();
-  mctx.arc(px, py, 5, 0, Math.PI * 2);
+  mctx.arc(px, py, 6, 0, Math.PI * 2);
   mctx.fill();
+  mctx.strokeStyle = '#ffffff';
+  mctx.lineWidth = 2;
+  mctx.stroke();
 }
 
 // --- 13. Save & Load Game Persistence Engine ---
@@ -5696,6 +6737,9 @@ function restartWorld() {
   state.player.sanity = 200;
   state.player.temp = 25;
   state.player.wetness = 0;
+  state.player.inDarknessTimer = 0;
+  state.player.whisperTimer = 0;
+  lastTime = performance.now();
   state.player.x = 1900;
   state.player.y = 1900;
   state.player.equipped.hand = null;
@@ -5802,6 +6846,46 @@ function setupInputs() {
   });
 
   // Top HUD buttons
+  const btnFullscreen = document.getElementById('btn-fullscreen');
+  if (btnFullscreen) {
+    btnFullscreen.onclick = () => {
+      audio.init();
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        const el = document.documentElement;
+        if (el.requestFullscreen) el.requestFullscreen();
+        else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+        btnFullscreen.innerText = '🗗 窗口';
+        showToast('📱 已开启全屏沉浸防误触模式！');
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+        else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+        btnFullscreen.innerText = '📱 全屏';
+        showToast('已退出全屏模式');
+      }
+    };
+  }
+
+  // Prevent accidental mobile browser back gesture exit
+  try {
+    window.history.pushState({ page: 'dont_starve' }, '', window.location.href);
+    window.addEventListener('popstate', (e) => {
+      window.history.pushState({ page: 'dont_starve' }, '', window.location.href);
+      audio.init();
+      openSaveLoadUI();
+      showToast('🛡️ 已拦截返回误触！游戏已自动暂停');
+    });
+  } catch (err) {
+    console.warn('popstate guard failed:', err);
+  }
+
+  window.addEventListener('beforeunload', (e) => {
+    if (state.started && !state.gameOver) {
+      e.preventDefault();
+      e.returnValue = '荒野求生正在进行中，离开将失去未保存进度，确认退出吗？';
+      return e.returnValue;
+    }
+  });
+
   document.getElementById('btn-save-game').onclick = () => {
     audio.init();
     openSaveLoadUI();

@@ -1,9 +1,9 @@
-const CACHE_NAME = 'dont-starve-v3.2';
+const CACHE_NAME = 'dont-starve-v4.0';
 const ASSETS = [
   './',
   './index.html',
-  './style.css?v=3.2',
-  './game.js?v=3.2',
+  './style.css?v=4.0',
+  './game.js?v=4.0',
   './manifest.json'
 ];
 
@@ -27,6 +27,6 @@ self.addEventListener('activate', (e) => {
 
 self.addEventListener('fetch', (e) => {
   e.respondWith(
-    caches.match(e.request).then((res) => res || fetch(e.request))
+    fetch(e.request).catch(() => caches.match(e.request))
   );
 });

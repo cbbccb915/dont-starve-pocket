@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#12100e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>饥荒：永恒之境 (Don't Starve Complete)</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css?v=2.3">
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="game-canvas"></canvas>
+
+    <!-- Top Survival HUD -->
+    <div id="hud-top">
+      <div class="top-left-group">
+        <div class="hud-btn-row">
+          <a href="../index.html" id="btn-back-home" class="gothic-btn mini-btn" title="返回游戏菜单">🏠 菜单</a>
+          <button id="btn-toggle-map" class="gothic-btn mini-btn" title="查看大地图">🗺️ 地图</button>
+        </div>
+        <div class="hud-btn-row">
+          <button id="btn-save-game" class="gothic-btn mini-btn" title="保存/读取存档">💾 存档</button>
+          <button id="btn-diary" class="gothic-btn mini-btn" title="生存历程与成就">📜 历程</button>
+        </div>
+      </div>
+
+      <!-- Vital Meters -->
+      <div class="status-bars">
+        <!-- Health Bar -->
+        <div class="meter-wrapper" id="health-meter" title="生命值">
+          <div class="meter-icon">❤️</div>
+          <div class="meter-bar-bg">
+            <div class="meter-bar-fill health" id="bar-health"></div>
+          </div>
+          <span class="meter-val" id="val-health">150/150</span>
+        </div>
+
+        <!-- Hunger Bar -->
+        <div class="meter-wrapper" id="hunger-meter" title="饥饿度">
+          <div class="meter-icon">🍗</div>
+          <div class="meter-bar-bg">
+            <div class="meter-bar-fill hunger" id="bar-hunger"></div>
+          </div>
+          <span class="meter-val" id="val-hunger">150/150</span>
+        </div>
+
+        <!-- Sanity Bar -->
+        <div class="meter-wrapper" id="sanity-meter" title="理智值/Sanity">
+          <div class="meter-icon">🧠</div>
+          <div class="meter-bar-bg">
+            <div class="meter-bar-fill sanity" id="bar-sanity"></div>
+          </div>
+          <span class="meter-val" id="val-sanity">200/200</span>
+        </div>
+
+        <!-- Secondary Environment Meters: Temperature & Wetness -->
+        <div class="env-meters-row">
+          <div class="mini-env-badge" id="temp-badge" title="体温 (过冷会冻伤，过热会中暑)">
+            <span class="env-icon" id="temp-icon">🌡️</span>
+            <span id="temp-val">25°C</span>
+          </div>
+          <div class="mini-env-badge" id="wet-badge" title="潮湿度 (雨中会湿透，降低理智并滑落武器)">
+            <span class="env-icon">💧</span>
+            <span id="wet-val">0%</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Clock Dial & Season Info -->
+      <div id="clock-container">
+        <canvas id="clock-canvas" width="84" height="84"></canvas>
+        <div id="day-counter">第 1 天</div>
+        <div id="season-badge" class="season-autumn">🍂 秋季 (剩15天)</div>
+      </div>
+    </div>
+
+    <!-- Crafting Toggle Tab (Left) -->
+    <div id="crafting-tab-btn" class="gothic-btn">🔨 科技制造</div>
+
+    <!-- Crafting Panel Drawer -->
+    <div id="crafting-drawer" class="hidden">
+      <div class="drawer-header">
+        <span>科技与生存蓝图</span>
+        <button id="close-crafting-btn" class="close-x">✕</button>
+      </div>
+      <!-- Prototyping Level Banner -->
+      <div id="tech-tier-banner">
+        <span id="tech-level-text">🔬 科技等级: 基础手搓 (需靠近科学仪器解锁)</span>
+      </div>
+      <div class="craft-categories">
+        <button class="cat-btn active" data-cat="light">🔥 光照</button>
+        <button class="cat-btn" data-cat="tools">🪓 工具</button>
+        <button class="cat-btn" data-cat="survival">🌿 生存</button>
+        <button class="cat-btn" data-cat="weapons">⚔️ 战斗</button>
+        <button class="cat-btn" data-cat="science">⚙️ 科学</button>
+        <button class="cat-btn" data-cat="magic">🔮 魔法远古</button>
+        <button class="cat-btn" data-cat="food">🍲 烹饪农业</button>
+        <button class="cat-btn" data-cat="structures">⛺ 建筑精炼</button>
+      </div>
+      <div id="recipes-list" class="recipes-container">
+        <!-- Injected dynamically -->
+      </div>
+    </div>
+
+    <!-- Equipped Items Display (Hand, Head, Body) -->
+    <div id="equipped-display">
+      <div class="equip-slot" id="equip-hand" title="手持武器/工具">
+        <span class="slot-label">手持</span>
+        <div class="slot-item-icon" id="icon-equip-hand">空</div>
+        <div class="durability-bar" id="dur-hand"></div>
+      </div>
+      <div class="equip-slot" id="equip-head" title="头部头盔/花环">
+        <span class="slot-label">头部</span>
+        <div class="slot-item-icon" id="icon-equip-head">空</div>
+        <div class="durability-bar" id="dur-head"></div>
+      </div>
+      <div class="equip-slot" id="equip-body" title="身体胸甲/背包">
+        <span class="slot-label">身体</span>
+        <div class="slot-item-icon" id="icon-equip-body">空</div>
+        <div class="durability-bar" id="dur-body"></div>
+      </div>
+    </div>
+
+    <!-- Backpack Container Bar (Shows when backpack equipped) -->
+    <div id="backpack-bar" class="hidden">
+      <div class="backpack-title">🎒 旅行背包 (+8格)</div>
+      <div id="backpack-slots" class="backpack-grid">
+        <!-- 8 slots injected dynamically -->
+      </div>
+    </div>
+
+    <!-- Bottom Main Inventory Bar -->
+    <div id="hud-bottom">
+      <div id="inventory-bar">
+        <!-- 10 hotbar slots dynamically generated -->
+      </div>
+    </div>
+
+    <!-- Item Interaction Popover -->
+    <div id="item-popover" class="hidden">
+      <div id="popover-title">物品名称</div>
+      <div id="popover-freshness-bar" class="hidden">
+        <span class="freshness-label">新鲜度:</span>
+        <div class="freshness-track"><div id="freshness-fill"></div></div>
+      </div>
+      <div id="popover-desc">描述信息</div>
+      <div id="popover-actions">
+        <button id="btn-action-use" class="pop-btn">使用 / 装备</button>
+        <button id="btn-action-cook" class="pop-btn hidden">营火烤制</button>
+        <button id="btn-action-drop" class="pop-btn danger">丢弃</button>
+        <button id="btn-action-cancel" class="pop-btn">关闭</button>
+      </div>
+    </div>
+
+    <!-- Crock Pot (烹饪锅) UI Modal -->
+    <div id="crockpot-modal" class="hidden">
+      <div class="gothic-panel crockpot-box">
+        <div class="modal-header">
+          <h2>🍳 瓦罐烹饪锅</h2>
+          <button id="btn-close-crockpot" class="close-x">✕</button>
+        </div>
+        <p class="crockpot-tip">放入 4 样食材，烹饪出色香味俱全的经典料理！</p>
+        <div class="crockpot-pots-row">
+          <div class="cp-slot" id="cp-slot-0" data-idx="0">空</div>
+          <div class="cp-slot" id="cp-slot-1" data-idx="1">空</div>
+          <div class="cp-slot" id="cp-slot-2" data-idx="2">空</div>
+          <div class="cp-slot" id="cp-slot-3" data-idx="3">空</div>
+        </div>
+        <div class="crockpot-cooking-area">
+          <div id="cp-progress-bar" class="cp-progress hidden"><div id="cp-progress-fill"></div></div>
+          <button id="btn-start-cook" class="gothic-btn highlight">开始炖煮料理</button>
+          <div id="cp-result-display" class="hidden"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Storage Chest (木箱) UI Modal -->
+    <div id="chest-modal" class="hidden">
+      <div class="gothic-panel chest-box">
+        <div class="modal-header">
+          <h2>📦 营地储物箱 (9格)</h2>
+          <button id="btn-close-chest" class="close-x">✕</button>
+        </div>
+        <div id="chest-grid" class="chest-grid">
+          <!-- 9 slots injected dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Chester Companion (切斯特狗箱) UI Modal -->
+    <div id="chester-modal" class="hidden">
+      <div class="gothic-panel chester-box">
+        <div class="modal-header">
+          <h2>🐾 切斯特·移动储物箱 (9格)</h2>
+          <button id="btn-close-chester" class="close-x">✕</button>
+        </div>
+        <p class="chester-status-tip" id="chester-type-tip">忠诚的眼骨伙伴，随身跟随并吞吐珍稀宝物。</p>
+        <div id="chester-grid" class="chest-grid">
+          <!-- 9 slots injected dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Save & Load Game Modal -->
+    <div id="save-load-modal" class="hidden">
+      <div class="gothic-panel save-box">
+        <div class="modal-header">
+          <h2>💾 荒野记忆 · 存档管理</h2>
+          <button id="btn-close-save" class="close-x">✕</button>
+        </div>
+        <p class="save-tip">游戏在每日拂晓自动存档。您也可以随时在下方槽位保存或载入进度：</p>
+        <div class="save-slots-list">
+          <div class="save-slot-card" id="slot-card-1">
+            <div class="slot-info">
+              <span class="slot-title">存档槽位 1</span>
+              <span class="slot-details" id="slot-desc-1">空存档</span>
+            </div>
+            <div class="slot-btns">
+              <button class="gothic-btn mini-btn" onclick="saveGameToSlot(1)">保存</button>
+              <button class="gothic-btn mini-btn highlight" onclick="loadGameFromSlot(1)">载入</button>
+            </div>
+          </div>
+          <div class="save-slot-card" id="slot-card-2">
+            <div class="slot-info">
+              <span class="slot-title">存档槽位 2</span>
+              <span class="slot-details" id="slot-desc-2">空存档</span>
+            </div>
+            <div class="slot-btns">
+              <button class="gothic-btn mini-btn" onclick="saveGameToSlot(2)">保存</button>
+              <button class="gothic-btn mini-btn highlight" onclick="loadGameFromSlot(2)">载入</button>
+            </div>
+          </div>
+          <div class="save-slot-card" id="slot-card-3">
+            <div class="slot-info">
+              <span class="slot-title">存档槽位 3</span>
+              <span class="slot-details" id="slot-desc-3">空存档</span>
+            </div>
+            <div class="slot-btns">
+              <button class="gothic-btn mini-btn" onclick="saveGameToSlot(3)">保存</button>
+              <button class="gothic-btn mini-btn highlight" onclick="loadGameFromSlot(3)">载入</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Survival Diary & Milestones Modal -->
+    <div id="diary-modal" class="hidden">
+      <div class="gothic-panel diary-box">
+        <div class="modal-header">
+          <h2>📜 荒野开拓史诗 · 成就与里程碑</h2>
+          <button id="btn-close-diary" class="close-x">✕</button>
+        </div>
+        <div class="diary-stats-summary" id="diary-stats-content">
+          <!-- Injected dynamically -->
+        </div>
+        <div class="milestones-grid" id="milestones-list">
+          <!-- Injected dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Full Map (大地图) Modal -->
+    <div id="map-modal" class="hidden">
+      <div class="gothic-panel map-box">
+        <div class="modal-header">
+          <h2>🗺️ 荒野全景地图</h2>
+          <button id="btn-close-map" class="close-x">✕</button>
+        </div>
+        <canvas id="full-map-canvas" width="600" height="400"></canvas>
+        <div class="map-legend">
+          <span>🟢 森林/平原</span>
+          <span>🟡 稀树草原(牛群)</span>
+          <span>🟤 矿区</span>
+          <span>🟣 沼泽</span>
+          <span>⛺ 营地设施</span>
+          <span>🔺 玩家当前位置</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Virtual Controls -->
+    <div id="touch-controls">
+      <!-- Virtual Joystick Area -->
+      <div id="joystick-zone">
+        <div id="joystick-base">
+          <div id="joystick-stick"></div>
+        </div>
+      </div>
+
+      <!-- Action Buttons Area -->
+      <div id="action-buttons-zone">
+        <button id="btn-action-interact" class="circle-btn interact-btn">
+          <span class="btn-icon" id="action-icon">✋</span>
+          <span class="btn-text" id="action-text">交互</span>
+        </button>
+        <button id="btn-action-attack" class="circle-btn attack-btn">
+          <span class="btn-icon">🗡️</span>
+          <span class="btn-text">战斗</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Weather & Danger Screen Overlays -->
+    <div id="rain-overlay" class="weather-overlay hidden"></div>
+    <div id="snow-overlay" class="weather-overlay hidden"></div>
+    <div id="frost-vignette" class="hidden"></div>
+    <div id="overheat-vignette" class="hidden"></div>
+    <div id="charlie-vignette" class="hidden"></div>
+    <div id="insanity-overlay" class="hidden"></div>
+    <div id="cave-vignette" class="hidden"></div>
+
+    <!-- Warning Hound Bark Banner -->
+    <div id="hound-warning" class="hidden">⚠️ 远方传来令人毛骨悚然的狂吠声...（猎犬来袭警报！）</div>
+
+    <!-- Notification Toast -->
+    <div id="toast-message" class="hidden"></div>
+
+    <!-- Game Over Screen (with Resurrect option if Meat Effigy / Life Amulet active) -->
+    <div id="game-over-screen" class="hidden">
+      <div class="game-over-box gothic-panel">
+        <h1 class="skull-title">☠ 你死于荒野</h1>
+        <p id="death-cause">黑暗吞噬了你的灵魂...</p>
+        <p id="survival-stats">你存活了 1 天</p>
+        <div id="resurrect-options">
+          <button id="btn-resurrect" class="gothic-btn highlight hidden">🌟 消耗肉块雕像 / 护符重生</button>
+          <button id="btn-restart" class="gothic-btn">重新生成新世界</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Welcome / Start Screen -->
+    <div id="start-screen">
+      <div class="start-box gothic-panel">
+        <h1 class="game-title">饥荒：永恒之境</h1>
+        <h3 class="game-subtitle">DON'T STARVE COMPLETE</h3>
+        <div class="rules-summary">
+          <p>🍂 <b>四季与体温</b>：秋季备战，冬季严寒刺骨需保暖石，春季暴雨潮湿防雷，夏季酷暑烈火需避暑！</p>
+          <p>🔬 <b>四级科技树</b>：科学机器、炼金引擎、灵子分解器、暗影操纵仪，解锁远古铥矿神装与魔杖！</p>
+          <p>📦 <b>切斯特与地下洞穴</b>：寻找眼骨召唤移动宝箱切斯特（月圆升级），凿开被封印的洞口探秘地底废墟！</p>
+          <p>👹 <b>四大季节巨兽</b>：冬季独眼巨鹿、秋季熊獾暴怒抢食、春季鹿鸭雷鸣呼啸、夏季龙蝇焚尽万物！</p>
+          <p>💾 <b>持久存档与成就</b>：支持三栏本地存档与每日清晨自动保存，历程面板记录击杀巨兽与生存里程碑！</p>
+        </div>
+        <button id="btn-play" class="gothic-btn highlight" style="font-size:18px; padding:12px 28px;">进入荒野求生</button>
+        <div class="control-hints">
+          <p>📱 <b>手机触控</b>：左下角虚拟摇杆走位，右下角交互/攻击，点击背包/瓦罐即可操作</p>
+          <p>💻 <b>键盘操作</b>：WASD 移动，空格交互/采集，F 攻击，M 查看地图，1-0 选择物品栏</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js?v=2.3"></script>
+</body>
+</html>

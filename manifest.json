@@ -1,0 +1,10 @@
+{
+  "name": "饥荒：永夜求生 (Don't Starve Pocket)",
+  "short_name": "饥荒",
+  "start_url": "index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0908",
+  "theme_color": "#12100e",
+  "description": "移动端复古哥特风格生存沙盒游戏，维持生命、饥饿与理智，抵御黑夜之影。"
+}

@@ -250,6 +250,74 @@ class SoundSynth {
 
 const audio = new SoundSynth();
 
+// --- 1.5. Playable Survivors Roster (70h Character System) ---
+const CHARACTERS = {
+  wilson: {
+    id: 'wilson',
+    name: '威尔逊',
+    title: '绅士科学家',
+    avatar: '👨‍🔬',
+    maxHp: 150,
+    maxHunger: 150,
+    maxSanity: 200,
+    speed: 165,
+    beardStage: 0,
+    desc: '全能均衡，生长胡须抵御冬寒，剃须可获珍贵胡须与理智。'
+  },
+  wendy: {
+    id: 'wendy',
+    name: '温蒂',
+    title: '丧亲哀恸者',
+    avatar: '👧',
+    maxHp: 150,
+    maxHunger: 150,
+    maxSanity: 200,
+    speed: 165,
+    startItem: 'abigail_flower',
+    damageMod: 0.75,
+    sanityAuraMod: 0.75,
+    desc: '自带阿比盖尔之花，黄昏夜间召唤孪生姐姐鬼魂群攻助战！'
+  },
+  wolfgang: {
+    id: 'wolfgang',
+    name: '沃尔夫冈',
+    title: '大力士',
+    avatar: '🏋️',
+    maxHp: 200,
+    maxHunger: 300,
+    maxSanity: 200,
+    speed: 165,
+    desc: '饱食度高于220化身肌肉巨汉，输出翻倍、移速大幅提升！'
+  },
+  wx78: {
+    id: 'wx78',
+    name: 'WX-78',
+    title: '机器人',
+    avatar: '🤖',
+    maxHp: 100,
+    maxHunger: 100,
+    maxSanity: 100,
+    speed: 165,
+    gearsEaten: 0,
+    desc: '吞吃齿轮永久升级三维上限！雷击过载发光加速，怕水。'
+  },
+  wigfrid: {
+    id: 'wigfrid',
+    name: '薇格弗德',
+    title: '女武神',
+    avatar: '🛡️',
+    maxHp: 200,
+    maxHunger: 120,
+    maxSanity: 120,
+    speed: 165,
+    damageMod: 1.25,
+    armorMod: 0.25,
+    onlyMeat: true,
+    startItem: 'battle_spear',
+    desc: '纯肉食狂热战士，战吼打击吸血吸脑，专属长矛战盔！'
+  }
+};
+
 // --- 2. Complete Items & Food Registry ---
 const ITEMS = {
   // Raw resources
@@ -370,7 +438,40 @@ const ITEMS = {
   scale_mail: { id: 'scale_mail', name: '鳞片胸甲', icon: '🛡️🔥', desc: '吸收 85% 伤害，免疫火焰并点燃攻击者！', equipSlot: 'body', durability: 500, armorDefense: 0.85, fireImmune: true },
   prestihatitator_item: { id: 'prestihatitator_item', name: '灵子分解器', icon: '🎩✨', desc: '一阶魔法科技！解锁暗夜剑、影甲、排箫、火魔杖。', isPlaceable: 'prestihatitator' },
   shadow_manipulator_item: { id: 'shadow_manipulator_item', name: '暗影操纵仪', icon: '🔮🪐', desc: '二阶暗影科技！解锁生命护符、远古铥矿装备。', isPlaceable: 'shadow_manipulator' },
-  farmplot_item: { id: 'farmplot_item', name: '改良农田', icon: '🌾🟫', desc: '开辟沃土农田，播撒种子种植高产作物。', isPlaceable: 'farmplot' }
+  farmplot_item: { id: 'farmplot_item', name: '改良农田', icon: '🌾🟫', desc: '开辟沃土农田，播撒种子种植高产作物。', isPlaceable: 'farmplot' },
+
+  // --- 70h Content Expansion: Survival, Base Automation, Nautical & Celestial ---
+  abigail_flower: { id: 'abigail_flower', name: '阿比盖尔之花', icon: '🌺', desc: '温蒂的孪生信物。黄昏或夜间点击使用，召唤姐姐阿比盖尔幽灵助战！', stack: 1 },
+  saddle: { id: 'saddle', name: '简易牛鞍', icon: '🏇', desc: '套在驯养度大于20%的皮弗娄牛背上，开启全速骑乘战斗！', stack: 1 },
+  flingomatic_item: { id: 'flingomatic_item', name: '雪球灭火机', icon: '❄️⚙️', desc: '全自动基地防御设施！夏季自动侦测火情并射击雪球灭火冷却。', isPlaceable: 'flingomatic' },
+  drying_rack_item: { id: 'drying_rack_item', name: '晾肉架', icon: '🥩🪵', desc: '风干生肉与怪物肉，制作不易腐败的高额回复大肉干！', isPlaceable: 'drying_rack' },
+  birdcage_item: { id: 'birdcage_item', name: '镀金鸟笼', icon: '🦜🏯', desc: '囚禁鸟雀。喂肉产蛋，喂果蔬产出高产特异良种。', isPlaceable: 'birdcage' },
+  bird_trap: { id: 'bird_trap', name: '捕鸟陷阱', icon: '🕸️🪤', desc: '置于地面撒入种子，诱捕野生乌鸦与红雀。', isPlaceable: 'bird_trap' },
+  bird_item: { id: 'bird_item', name: '捕获的小鸟', icon: '🐦', desc: '活鸟雀，可放入鸟笼或宰杀。', stack: 10 },
+  beebox_item: { id: 'beebox_item', name: '蜂箱', icon: '🐝🍯', desc: '人工养殖蜜蜂，周期性稳定产出甘甜蜂蜜。', isPlaceable: 'beebox' },
+  bugnet: { id: 'bugnet', name: '捕虫网', icon: '🥅', desc: '捕捉飞舞的蜜蜂和蝴蝶。', equipSlot: 'hand', durability: 30, weaponDamage: 4 },
+  live_bee: { id: 'live_bee', name: '活蜜蜂', icon: '🐝', desc: '捕获的工蜂，制作蜂箱的核心原料。', stack: 20 },
+  honeycomb: { id: 'honeycomb', name: '蜂巢碎片', icon: '🍯🟨', desc: '摧毁野生杀人蜂巢获得的坚实蜂蜡。', stack: 10 },
+  boat_kit: { id: 'boat_kit', name: '远洋造船套件', icon: '⛵', desc: '置于海岸边缘，组装并登上一艘远洋探险海船！', isPlaceable: 'boat' },
+  boat_oar: { id: 'boat_oar', name: '简易船桨', icon: '🛶', desc: '手持划桨，提升 50% 航海划行速度。', equipSlot: 'hand', durability: 100, weaponDamage: 15 },
+  jerky: { id: 'jerky', name: '优质大肉干', icon: '🍖✨', desc: '求生神器！+20生命，+25饥饿，+15理智，保质期极长。', stack: 40, maxFresh: 600, food: { hunger: 25, hp: 20, sanity: 15, meatVal: 1 } },
+  monster_jerky: { id: 'monster_jerky', name: '怪物肉干', icon: '🥓🖤', desc: '风干怪物肉，+18饥饿，-5理智，+0生命。', stack: 40, maxFresh: 500, food: { hunger: 18, hp: 0, sanity: -5, meatVal: 1 } },
+  moon_rock: { id: 'moon_rock', name: '月岩', icon: '🌑', desc: '天体月岛采集的奇异月球陨石。', stack: 40 },
+  moon_shard: { id: 'moon_shard', name: '月光碎片', icon: '💎🌙', desc: '闪烁纯净月华的晶体，制造天体科技与玻璃刀。', stack: 40 },
+  glass_cutter: { id: 'glass_cutter', name: '玻璃切割刀', icon: '🗡️🌙', desc: '天体神兵！68 点极高斩击伤害，对暗影生物有额外破甲。', equipSlot: 'hand', durability: 75, weaponDamage: 68 },
+  celestial_altar_item: { id: 'celestial_altar_item', name: '天体祭坛基座', icon: '🌙🏛️', desc: '天体月岛的核心祭坛，供奉解锁天体远古科技。', isPlaceable: 'celestial_altar' },
+  teleportato_wooden: { id: 'teleportato_wooden', name: '木质基座', icon: '🪵🌀', desc: '麦斯威尔传送阵的底座基石。', isPlaceable: 'teleportato_wooden' },
+  teleportato_ring: { id: 'teleportato_ring', name: '传送门圆环', icon: '⭕✨', desc: '传送机零件 1/4。', stack: 1 },
+  teleportato_crank: { id: 'teleportato_crank', name: '传送门曲柄', icon: '🔧⚡', desc: '传送机零件 2/4。', stack: 1 },
+  teleportato_box: { id: 'teleportato_box', name: '传送门箱子', icon: '📦🔮', desc: '传送机零件 3/4。', stack: 1 },
+  teleportato_potato: { id: 'teleportato_potato', name: '金属土豆', icon: '🥔🔩', desc: '传送机零件 4/4。神秘的超导核心组件。', stack: 1 },
+  divining_rod: { id: 'divining_rod', name: '寻矿罗盘', icon: '🧭✨', desc: '靠近麦斯威尔传送零件时发出急促鸣响！', equipSlot: 'hand', durability: 100 },
+  battle_spear: { id: 'battle_spear', name: '战斗长矛', icon: '🔱', desc: '薇格弗德专属神矛！42点高额伤害，200次高耐久。', equipSlot: 'hand', durability: 200, weaponDamage: 42 },
+  battle_helm: { id: 'battle_helm', name: '战斗头盔', icon: '🪖✨', desc: '薇格弗德专属战盔！80%伤害吸收，750次超高耐久。', equipSlot: 'head', durability: 750, armorDefense: 0.8 },
+  razor: { id: 'razor', name: '剃刀', icon: '🪒', desc: '夜晚入睡前剃除胡须获取胡须与理智，或剪取熟睡牛毛。', stack: 1 },
+  trap: { id: 'trap', name: '草编陷阱', icon: '🪤', desc: '布置在兔子洞口或池塘边，捕获活兔与青蛙。', isPlaceable: 'trap' },
+  krampus_sack: { id: 'krampus_sack', name: '坎普斯背包', icon: '🎒👿', desc: '击溃冬季隐藏霸主【克劳斯】的传奇战利品！14 格顶级巨无霸容量！', equipSlot: 'body', backpackSlots: 14 },
+  guardian_horn: { id: 'guardian_horn', name: '远古守护者之角', icon: '📯🔶', desc: '洞穴遗迹迷宫击溃【远古犀牛】的至高战利品！+80 生命与神威长角。', stack: 1 }
 };
 
 // --- 3. Complete Tech Tree Recipes ---
@@ -389,15 +490,22 @@ const RECIPES = [
   // Category: Survival
   { id: 'garland', cat: 'survival', tier: 0, name: '花环', icon: '👑', req: { flower: 8 }, desc: '佩戴恢复理智' },
   { id: 'straw_hat', cat: 'survival', tier: 0, name: '草帽', icon: '👒', req: { grass: 6 }, desc: '防暑降温' },
+  { id: 'razor', cat: 'survival', tier: 0, name: '坚固剃刀', icon: '🪒', req: { twig: 2, flint: 2 }, desc: '剃除胡须/剪取牛毛' },
+  { id: 'trap', cat: 'survival', tier: 0, name: '草编陷阱', icon: '🪤', req: { grass: 6, twig: 2 }, desc: '捕获活兔与青蛙' },
+  { id: 'bugnet', cat: 'survival', tier: 1, name: '捕虫网', icon: '🥅', req: { twig: 4, silk: 2, rope: 1 }, desc: '捕捉飞舞的蜜蜂与蝴蝶' },
   { id: 'umbrella', cat: 'survival', tier: 1, name: '雨伞', icon: '☂️', req: { twig: 4, silk: 2, pig_skin: 1 }, desc: '春季防雨夏季遮阳' },
   { id: 'winter_hat', cat: 'survival', tier: 1, name: '冬帽', icon: '🧢', req: { beefalo_wool: 4, silk: 2 }, desc: '冬季抵御严寒' },
   { id: 'beefalo_hat', cat: 'survival', tier: 2, name: '牛角帽', icon: '🐂👑', req: { beefalo_wool: 8, horn: 1 }, desc: '终极防冻与牛群伪装' },
   { id: 'thermal_stone', cat: 'survival', tier: 1, name: '暖石', icon: '🪨✨', req: { rock: 10, flint: 3, pickaxe: 1 }, desc: '吸收火源热量随身保暖' },
   { id: 'salve', cat: 'survival', tier: 1, name: '治疗药膏', icon: '🧪', req: { gland: 1, flower: 2, rock: 1 }, desc: '恢复 25 点生命' },
   { id: 'backpack', cat: 'survival', tier: 1, name: '旅行背包', icon: '🎒', req: { grass: 4, twig: 4 }, desc: '扩充额外 8 格背包栏' },
+  { id: 'saddle', cat: 'survival', tier: 2, name: '简易牛鞍', icon: '🏇', req: { pig_skin: 4, beefalo_wool: 4, cut_stone: 2 }, desc: '骑乘驯化皮弗娄牛' },
+  { id: 'divining_rod', cat: 'survival', tier: 2, name: '寻矿罗盘', icon: '🧭✨', req: { twig: 1, gold: 4, nightmare_fuel: 1 }, desc: '鸣叫定位麦斯威尔遗物' },
 
   // Category: Weapons & Combat
   { id: 'spear', cat: 'weapons', tier: 0, name: '长矛', icon: '🗡️', req: { twig: 2, rope: 1, flint: 1 }, desc: '基础武器 35 攻击' },
+  { id: 'battle_spear', cat: 'weapons', tier: 0, name: '战斗长矛', icon: '🔱', req: { twig: 2, flint: 2, gold: 1 }, desc: '42高额伤害专属战矛' },
+  { id: 'battle_helm', cat: 'weapons', tier: 0, name: '战斗头盔', icon: '🪖✨', req: { gold: 2, rock: 2 }, desc: '80%超高减伤专属战盔' },
   { id: 'armor_grass', cat: 'weapons', tier: 0, name: '草甲', icon: '🦺', req: { grass: 8, twig: 2 }, desc: '吸收 60% 伤害' },
   { id: 'armor_wood', cat: 'weapons', tier: 1, name: '木甲', icon: '🛡️', req: { log: 8, rope: 2 }, desc: '吸收 80% 核心护甲' },
   { id: 'football_helmet', cat: 'weapons', tier: 1, name: '猪皮头盔', icon: '🪖', req: { rope: 1, meat: 1 }, desc: '吸收 80% 头部防护' },
@@ -435,7 +543,17 @@ const RECIPES = [
   { id: 'cut_stone', cat: 'structures', tier: 1, name: '石砖', icon: '🧱', req: { rock: 3 }, desc: '坚固石砌砖块' },
   { id: 'chest_item', cat: 'structures', tier: 1, name: '储物木箱', icon: '📦', req: { boards: 3 }, desc: '9 格基地储物箱' },
   { id: 'tent_item', cat: 'structures', tier: 2, name: '野营帐篷', icon: '⛺💤', req: { silk: 4, twig: 4, rope: 2 }, desc: '睡觉回血回理智' },
-  { id: 'meat_effigy_item', cat: 'structures', tier: 2, name: '肉块雕像', icon: '🗿🩸', req: { boards: 4, meat: 4, charcoal: 2 }, desc: '死亡后在此满血复活' }
+  { id: 'meat_effigy_item', cat: 'structures', tier: 2, name: '肉块雕像', icon: '🗿🩸', req: { boards: 4, meat: 4, charcoal: 2 }, desc: '死亡后在此满血复活' },
+  { id: 'drying_rack_item', cat: 'structures', tier: 1, name: '晾肉架', icon: '🥩🪵', req: { twig: 3, charcoal: 2, rope: 3 }, desc: '风干肉类制成大肉干' },
+  { id: 'birdcage_item', cat: 'structures', tier: 1, name: '镀金鸟笼', icon: '🦜🏯', req: { boards: 2, gold: 6, seeds: 2 }, desc: '喂肉产蛋/喂果蔬产良种' },
+  { id: 'beebox_item', cat: 'structures', tier: 1, name: '蜂箱', icon: '🐝🍯', req: { boards: 2, honeycomb: 1, live_bee: 4 }, desc: '稳定生产蜂蜜' },
+  { id: 'flingomatic_item', cat: 'structures', tier: 2, name: '雪球灭火机', icon: '❄️⚙️', req: { gears: 2, ice: 15, cut_stone: 2 }, desc: '自动扑灭火险与降温' },
+
+  // Category: Nautical & Celestial (远洋航海与天体)
+  { id: 'boat_kit', cat: 'nautical', tier: 1, name: '远洋造船套件', icon: '⛵', req: { boards: 4, rope: 3 }, desc: '出海扬帆远航' },
+  { id: 'boat_oar', cat: 'nautical', tier: 0, name: '简易船桨', icon: '🛶', req: { twig: 2, log: 1 }, desc: '提升出海航速' },
+  { id: 'glass_cutter', cat: 'nautical', tier: 4, name: '玻璃切割刀', icon: '🗡️🌙', req: { moon_rock: 1, moon_shard: 6 }, desc: '68点月华斩击伤害' },
+  { id: 'celestial_altar_item', cat: 'nautical', tier: 4, name: '天体祭坛基座', icon: '🌙🏛️', req: { moon_rock: 4, moon_shard: 8 }, desc: '激活月岛启蒙科技' }
 ];
 
 // --- 4. Main Game State & Survival Diary ---
@@ -447,6 +565,18 @@ function initDiary() {
     recipesCrafted: 0,
     dishesCooked: 0,
     cavesExplored: 0,
+    beefaloTamed: 0,
+    worldsJumped: 0,
+    chaptersCompleted: 0,
+    chapters: {
+      ch1: false, // 荒野筑基 (建造科学仪器与瓦罐烹饪锅)
+      ch2: false, // 凛冬苦寒 (击溃冬季独眼巨鹿)
+      ch3: false, // 万物生息 (驯养皮弗娄牛与搭建蜂箱)
+      ch4: false, // 酷暑炼狱 (建造雪球灭火机并击溃夏季龙蝇)
+      ch5: false, // 深渊织影 (探索地下洞穴斩杀远古守护者犀牛)
+      ch6: false, // 扬帆天体 (造船远航并登顶天体月岛)
+      ch7: false  // 维度飞升 (集齐零件组装麦斯威尔跳世界机)
+    },
     milestones: {
       survive_night: false,
       science_rev: false,
@@ -455,7 +585,15 @@ function initDiary() {
       enter_caves: false,
       magic_apprentice: false,
       slay_deerclops: false,
+      tame_beefalo: false,
+      slay_bearger: false,
+      slay_dragonfly: false,
+      slay_guardian: false,
+      slay_klaus: false,
+      sail_boat: false,
+      reach_lunar: false,
       four_seasons: false,
+      teleportato_jump: false,
       eternal_lord: false
     }
   };
@@ -464,6 +602,8 @@ function initDiary() {
 const state = {
   started: false,
   gameOver: false,
+  character: 'wilson',
+  worldCycle: 1,
   day: 1,
   timeInDay: 0, // 0-60 Day, 60-85 Dusk, 85-120 Night (120s full day)
   dayLength: 120,
@@ -475,6 +615,37 @@ const state = {
   caveEntities: null,
   cavePlayerPos: { x: 1600, y: 1600 },
   caveVisited: false,
+
+  // Beefalo Riding Mount
+  beefaloRiding: false,
+  beefaloMountHp: 500,
+  beefaloMountMaxHp: 500,
+
+  // Abigail Companion (for Wendy)
+  abigail: {
+    active: false,
+    x: 1900,
+    y: 1900,
+    hp: 300,
+    maxHp: 300,
+    attackTimer: 0
+  },
+
+  // Sailing & Lunar
+  sailing: false,
+  onLunarIsland: false,
+
+  // Teleportato Jump Machine
+  teleportato: {
+    assembled: false,
+    parts: {
+      wooden: false,
+      ring: false,
+      crank: false,
+      box: false,
+      potato: false
+    }
+  },
 
   // Chester Companion State
   chester: {
@@ -836,7 +1007,13 @@ function onSlotClicked(source, index) {
   const btnUse = document.getElementById('btn-action-use');
   const btnCook = document.getElementById('btn-action-cook');
 
-  if (def.food) {
+  if (slot.id === 'abigail_flower') {
+    btnUse.innerText = '召唤阿比盖尔';
+    btnUse.style.display = 'inline-block';
+  } else if (slot.id === 'gears' && state.character === 'wx78') {
+    btnUse.innerText = '吞噬升级';
+    btnUse.style.display = 'inline-block';
+  } else if (def.food) {
     btnUse.innerText = '食用';
     btnUse.style.display = 'inline-block';
   } else if (def.equipSlot) {
@@ -885,7 +1062,35 @@ function useCurrentItem(source, index) {
   const def = ITEMS[slot.id];
   const p = state.player;
 
+  if (slot.id === 'abigail_flower') {
+    spawnAbigail();
+    closePopover();
+    updateInventoryUI();
+    return;
+  }
+
+  if (slot.id === 'gears' && state.character === 'wx78') {
+    audio.playEat();
+    p.maxHp += 20;
+    p.maxHunger += 20;
+    p.maxSanity += 20;
+    p.hp = p.maxHp;
+    p.hunger = p.maxHunger;
+    p.sanity = p.maxSanity;
+    slot.count--;
+    if (slot.count <= 0) slots[index] = null;
+    showToast('🤖 吞噬齿轮！核心硬件已永久升级三维系统上限！');
+    closePopover();
+    updateInventoryUI();
+    updateHUD();
+    return;
+  }
+
   if (def.food) {
+    if (state.character === 'wigfrid' && !def.food.isMeat) {
+      showToast('薇格弗德怒斥：高贵的战士从不吃草木素食！');
+      return;
+    }
     audio.playEat();
     // Freshness penalty: Stale gives -33% hunger, Spoiled gives -50% hunger & drops sanity
     let hungerMult = 1.0;
@@ -1009,6 +1214,34 @@ function deployStructure(type, x, y) {
   } else if (type === 'farmplot') {
     state.entities.push({ type: 'farmplot', x, y, radius: 28, crop: null, stage: 0, growTimer: 0 });
     showToast('🌾 开辟了改良农田！手持种子即可播种！');
+  } else if (type === 'flingomatic') {
+    state.entities.push({ type: 'flingomatic', x, y, radius: 30, active: true, fuel: 100, maxFuel: 100, range: 260 });
+    showToast('❄️ 建造了雪球灭火机！将在夏季自动侦测火情发射雪球灭火！');
+    if (state.diary) state.diary.chapters.ch4 = true;
+  } else if (type === 'drying_rack') {
+    state.entities.push({ type: 'drying_rack', x, y, radius: 24, meat: null, timer: 0, ready: false });
+    showToast('🥩 搭建了晾肉架！可将大肉或怪物肉悬挂风干成高饱食大肉干！');
+  } else if (type === 'birdcage') {
+    state.entities.push({ type: 'birdcage', x, y, radius: 26, hasBird: false, birdType: null });
+    showToast('🦜 建造了镀金鸟笼！可将捕获的活鸟放入驯养，喂肉产蛋/喂果蔬产良种！');
+  } else if (type === 'beebox') {
+    state.entities.push({ type: 'beebox', x, y, radius: 26, honey: 0, maxHoney: 6, prodTimer: 0 });
+    showToast('🐝 搭建了蜂箱！工蜂将开始酿造纯正天然蜂蜜！');
+    if (state.diary) state.diary.chapters.ch3 = true;
+  } else if (type === 'boat') {
+    state.entities.push({ type: 'boat', x, y, radius: 45, hp: 500, maxHp: 500 });
+    showToast('⛵ 远洋海船已下水！靠近登船即可扬帆远征海洋！');
+    if (state.diary) {
+      state.diary.milestones.sail_boat = true;
+      state.diary.chapters.ch6 = true;
+    }
+  } else if (type === 'celestial_altar') {
+    state.entities.push({ type: 'celestial_altar', x, y, radius: 32, active: true });
+    showToast('🌙 激活了天体祭坛基座！天体科技与理智启蒙场已建立！');
+    if (state.diary) state.diary.milestones.reach_lunar = true;
+  } else if (type === 'teleportato_wooden') {
+    state.entities.push({ type: 'teleportato_base', x, y, radius: 36, assembled: false });
+    showToast('🌀 安放了木质基座！靠近可组装麦斯威尔跳世界机！');
   }
 }
 
@@ -1159,6 +1392,158 @@ function checkChesterTransformation() {
     audio.playMagic();
     showToast('🔮 切斯特吞噬了噩梦余烬，蜕变为【暗影切斯特】（空间扩充至12格）！');
   }
+}
+
+// --- 5.5. Beefalo Mount & Companion & Teleportato Mechanics ---
+function mountBeefalo(beefaloEnt) {
+  state.beefaloRiding = true;
+  state.beefaloMountHp = beefaloEnt.hp || 500;
+  state.beefaloMountMaxHp = 500;
+  state.player.speed = 250;
+  const badge = document.getElementById('mount-badge');
+  if (badge) badge.classList.remove('hidden');
+  updateMountBadge();
+  showToast('🐂 翻身跃上牛背！全速疾驰，冲锋与践踏已激活！');
+  audio.playBeefaloGrunt();
+}
+
+function dismountBeefalo() {
+  state.beefaloRiding = false;
+  state.player.speed = CHARACTERS[state.character]?.speed || 165;
+  const badge = document.getElementById('mount-badge');
+  if (badge) badge.classList.add('hidden');
+  showToast('下了牛背。');
+}
+
+function updateMountBadge() {
+  if (!state.beefaloRiding) return;
+  const pct = Math.max(0, Math.min(100, (state.beefaloMountHp / state.beefaloMountMaxHp) * 100));
+  const fill = document.getElementById('mount-hp-fill');
+  if (fill) fill.style.width = pct + '%';
+}
+
+function spawnAbigail() {
+  if (state.abigail.active) {
+    showToast('姐姐阿比盖尔已经在身边陪伴着你。');
+    return;
+  }
+  state.abigail.active = true;
+  state.abigail.x = state.player.x - 25;
+  state.abigail.y = state.player.y - 25;
+  state.abigail.hp = 300;
+  state.abigail.maxHp = 300;
+  const badge = document.getElementById('abigail-badge');
+  if (badge) badge.classList.remove('hidden');
+  showToast('👻 阿比盖尔的幽魂从花朵中现身！孪生姐姐为你护航！');
+  audio.playMagic();
+}
+
+function selectCharacter(charId) {
+  if (!CHARACTERS[charId]) return;
+  state.character = charId;
+  const def = CHARACTERS[charId];
+  const p = state.player;
+  p.maxHp = def.maxHp;
+  p.maxHunger = def.maxHunger;
+  p.maxSanity = def.maxSanity;
+  p.hp = def.maxHp;
+  p.hunger = def.maxHunger;
+  p.sanity = def.maxSanity;
+  p.speed = def.speed;
+
+  // Clear starting inventory and assign character start items
+  p.inventory = new Array(10).fill(null);
+  if (def.startItem) {
+    p.inventory[0] = { id: def.startItem, count: 1 };
+  }
+  updateInventoryUI();
+  updateHUD();
+}
+
+function openTeleportatoUI() {
+  const modal = document.getElementById('teleportato-modal');
+  if (modal) modal.classList.remove('hidden');
+  renderTeleportatoParts();
+}
+
+function renderTeleportatoParts() {
+  const listEl = document.getElementById('teleportato-parts-list');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+
+  const partDefs = [
+    { id: 'teleportato_wooden', name: '木质基座', icon: '🪵' },
+    { id: 'teleportato_ring', name: '环状零件', icon: '💍' },
+    { id: 'teleportato_crank', name: '曲柄零件', icon: '🔩' },
+    { id: 'teleportato_box', name: '盒状零件', icon: '📦' },
+    { id: 'teleportato_potato', name: '金属马铃薯', icon: '🥔' }
+  ];
+
+  let allInstalled = true;
+  partDefs.forEach(part => {
+    const key = part.id.replace('teleportato_', '');
+    const isInstalled = state.teleportato.parts[key];
+    if (!isInstalled) allInstalled = false;
+
+    const card = document.createElement('div');
+    card.className = `teleportato-part-card ${isInstalled ? 'installed' : ''}`;
+    card.innerHTML = `
+      <div class="part-icon">${part.icon}</div>
+      <div class="part-name">${part.name}</div>
+      <div class="part-status">${isInstalled ? '已嵌合' : '未安装'}</div>
+    `;
+
+    card.onclick = () => {
+      if (!state.teleportato.parts[key]) {
+        if (countTotalItem(part.id) > 0) {
+          removeTotalItem(part.id, 1);
+          state.teleportato.parts[key] = true;
+          audio.playCraft();
+          showToast(`⚙️ 成功将【${part.name}】嵌入传送机！`);
+          renderTeleportatoParts();
+          updateInventoryUI();
+        } else {
+          showToast(`行囊中尚未找到【${part.name}】！可在全图探索寻获。`);
+        }
+      }
+    };
+    listEl.appendChild(card);
+  });
+
+  const btnActivate = document.getElementById('btn-activate-teleportato');
+  if (btnActivate) {
+    if (allInstalled) {
+      btnActivate.removeAttribute('disabled');
+      btnActivate.innerText = '⚡ 启动传送阵 · 跃迁飞升下一轮回！';
+      btnActivate.onclick = () => {
+        executeTeleportatoJump();
+      };
+    } else {
+      btnActivate.setAttribute('disabled', 'true');
+      btnActivate.innerText = '零件尚未集齐 (点击上方卡片安装零件)';
+    }
+  }
+}
+
+function executeTeleportatoJump() {
+  audio.playThunder();
+  state.worldCycle = (state.worldCycle || 1) + 1;
+  state.day = 1;
+  state.season = 'autumn';
+  state.seasonDay = 1;
+  state.teleportato = {
+    assembled: false,
+    parts: { wooden: false, ring: false, crank: false, box: false, potato: false }
+  };
+  if (state.diary) {
+    state.diary.worldsJumped = (state.diary.worldsJumped || 0) + 1;
+    state.diary.milestones.teleportato_jump = true;
+    state.diary.chapters.ch7 = true;
+  }
+  const modal = document.getElementById('teleportato-modal');
+  if (modal) modal.classList.add('hidden');
+  initWorld();
+  showToast(`🌌 跃迁完成！进入【第 ${state.worldCycle} 平行世界】！万物重铸，迎接全新挑战！`);
 }
 
 // --- 6. Tech Prototyping & Crafting Drawer ---
@@ -1566,11 +1951,46 @@ function initWorld() {
     });
   }
 
+  // 12. Maxwell's Teleportato Base & Scattered Relic Machine Parts
+  state.entities.push({
+    type: 'teleportato_base',
+    x: 3100,
+    y: 750,
+    radius: 40
+  });
+  dropWorldItem('teleportato_ring', 900, 3100, 1);
+  dropWorldItem('teleportato_crank', 3200, 3100, 1);
+  dropWorldItem('teleportato_box', 700, 900, 1);
+  dropWorldItem('teleportato_potato', 2800, 1700, 1);
+
+  // 13. Celestial Lunar Island Biome & Moon Shards
+  state.entities.push({
+    type: 'celestial_altar',
+    x: 3450,
+    y: 3450,
+    radius: 36,
+    active: true
+  });
+  for (let i = 0; i < 8; i++) {
+    const mx = 3450 + (Math.random() - 0.5) * 260;
+    const my = 3450 + (Math.random() - 0.5) * 260;
+    dropWorldItem('moon_rock', mx, my, 2);
+    if (Math.random() < 0.6) dropWorldItem('moon_shard', mx + 15, my + 15, 1);
+  }
+
   // Starter resources around player
   dropWorldItem('flint', state.player.x + 30, state.player.y + 20, 3);
   dropWorldItem('twig', state.player.x - 30, state.player.y + 10, 4);
   dropWorldItem('grass', state.player.x + 10, state.player.y - 30, 6);
   dropWorldItem('berry', state.player.x - 20, state.player.y - 20, 3);
+
+  // Character Starting Items
+  const charDef = CHARACTERS[state.character];
+  if (charDef && charDef.startItem) {
+    if (!state.player.inventory.some(s => s && s.id === charDef.startItem)) {
+      addToPlayer(charDef.startItem, 1);
+    }
+  }
 }
 
 // Underground Caves System Generator
@@ -1748,7 +2168,8 @@ function interactNearest() {
       if (['drop', 'tree', 'rock', 'bush', 'sapling', 'grass_tuft', 'flower', 'planted_carrot',
            'campfire', 'firepit', 'science_machine', 'alchemy_engine', 'prestihatitator', 'shadow_manipulator',
            'chest', 'crockpot', 'tent', 'pig_king', 'pig', 'beefalo', 'chester', 'cave_entrance', 'cave_exit',
-           'light_flower', 'farmplot', 'stalagmite', 'thulecite_rock', 'pond', 'ancient_station'].includes(ent.type)) {
+           'light_flower', 'farmplot', 'stalagmite', 'thulecite_rock', 'pond', 'ancient_station',
+           'drying_rack', 'birdcage', 'beebox', 'boat', 'teleportato_base', 'celestial_altar', 'bird_trap'].includes(ent.type)) {
         minDist = d;
         nearest = ent;
       }
@@ -1911,8 +2332,153 @@ function interactNearest() {
       showToast('猪人吃下了美味的肉，成为了你的忠诚盟友！');
     }
   } else if (nearest.type === 'beefalo') {
-    audio.playBeefaloGrunt();
-    showToast('皮弗娄牛正平静地嚼着青草。');
+    if (p.equipped.hand && p.equipped.hand.id === 'razor') {
+      audio.playChop();
+      dropWorldItem('beefalo_wool', nearest.x + 10, nearest.y + 10, 3);
+      nearest.hasWool = false;
+      showToast('✂️ 成功剃下了保暖的皮弗娄牛毛！');
+      p.sanity = Math.min(p.maxSanity, p.sanity + 5);
+      return;
+    }
+    if (state.beefaloRiding) {
+      dismountBeefalo();
+      return;
+    }
+    if (nearest.saddled) {
+      mountBeefalo(nearest);
+      return;
+    }
+    if (countTotalItem('grass') > 0 || countTotalItem('twig') > 0) {
+      if (countTotalItem('grass') > 0) removeTotalItem('grass', 1);
+      else removeTotalItem('twig', 1);
+      nearest.domestication = (nearest.domestication || 0) + 1;
+      audio.playEat();
+      createHitParticles(nearest.x, nearest.y, '#e74c3c');
+      if (nearest.domestication >= 2) {
+        if (countTotalItem('saddle') > 0) {
+          removeTotalItem('saddle', 1);
+          nearest.saddled = true;
+          showToast('🏇 成功为温顺的皮弗娄牛套上鞍具！再次靠近即可骑乘！');
+          if (state.diary) {
+            state.diary.milestones.tame_beefalo = true;
+            state.diary.beefaloTamed = (state.diary.beefaloTamed || 0) + 1;
+            state.diary.chapters.ch3 = true;
+          }
+        } else {
+          showToast(`🐂 牛牛非常亲近你 (驯化度: ${nearest.domestication}/2)！手持【简易牛鞍】即可套鞍骑乘！`);
+        }
+      } else {
+        showToast(`🐂 喂食皮弗娄牛！亲密度提升 (${nearest.domestication}/2)`);
+      }
+    } else {
+      audio.playBeefaloGrunt();
+      showToast('皮弗娄牛咕噜叫着。喂食干草或树枝可驯化，手持剃刀可剃毛！');
+    }
+  } else if (nearest.type === 'drying_rack') {
+    if (nearest.ready) {
+      const dropItem = nearest.meat === 'monstermeat' ? 'monster_jerky' : 'jerky';
+      if (addToPlayer(dropItem, 1)) {
+        audio.playPickup();
+        showToast(`🥩 丰收！收获了营养丰富的【${ITEMS[dropItem].name}】！`);
+        nearest.meat = null;
+        nearest.timer = 0;
+        nearest.ready = false;
+      }
+    } else if (nearest.meat) {
+      showToast(`风干中...剩余 ${Math.ceil(nearest.timer)} 秒`);
+    } else {
+      if (countTotalItem('meat') > 0) {
+        removeTotalItem('meat', 1);
+        nearest.meat = 'meat';
+        nearest.timer = 35;
+        nearest.ready = false;
+        audio.playCraft();
+        showToast('在晾肉架上悬挂了大肉，开始风干！');
+      } else if (countTotalItem('monstermeat') > 0) {
+        removeTotalItem('monstermeat', 1);
+        nearest.meat = 'monstermeat';
+        nearest.timer = 35;
+        nearest.ready = false;
+        audio.playCraft();
+        showToast('在晾肉架上悬挂了怪物肉，开始风干！');
+      } else {
+        showToast('手持【大肉】或【怪物肉】可悬挂在此风干。');
+      }
+    }
+  } else if (nearest.type === 'birdcage') {
+    if (!nearest.hasBird) {
+      if (countTotalItem('bird_item') > 0) {
+        removeTotalItem('bird_item', 1);
+        nearest.hasBird = true;
+        audio.playPickup();
+        showToast('🦜 成功将捕获的小鸟放入镀金鸟笼驯养！');
+      } else {
+        showToast('鸟笼空空如也。用捕鸟陷阱抓获小鸟后可关入！');
+      }
+    } else {
+      if (countTotalItem('meat') > 0 || countTotalItem('monstermeat') > 0 || countTotalItem('morsel') > 0) {
+        if (countTotalItem('meat') > 0) removeTotalItem('meat', 1);
+        else if (countTotalItem('morsel') > 0) removeTotalItem('morsel', 1);
+        else removeTotalItem('monstermeat', 1);
+        dropWorldItem('egg', nearest.x + 10, nearest.y + 10, 1);
+        audio.playCraft();
+        showToast('🥚 喂食鸟雀，获得了一枚新鲜鸟蛋！');
+      } else if (countTotalItem('carrot') > 0 || countTotalItem('dragonfruit') > 0 || countTotalItem('pumpkin') > 0) {
+        let cropId = countTotalItem('dragonfruit') > 0 ? 'dragonfruit' : (countTotalItem('pumpkin') > 0 ? 'pumpkin' : 'carrot');
+        removeTotalItem(cropId, 1);
+        dropWorldItem('seeds', nearest.x + 10, nearest.y + 10, 2);
+        audio.playCraft();
+        showToast(`🌱 喂食${ITEMS[cropId].name}，鸟雀啄出了纯正特异良种！`);
+      } else {
+        showToast('鸟笼中的鸟雀欢快鸣叫。喂肉产蛋，喂果蔬产良种！');
+      }
+    }
+  } else if (nearest.type === 'beebox') {
+    if (nearest.honey >= 1) {
+      const hCount = Math.floor(nearest.honey);
+      if (addToPlayer('honey', hCount)) {
+        nearest.honey = 0;
+        audio.playPickup();
+        showToast(`🍯 采收了 ${hCount} 罐纯正蜂蜜！`);
+      }
+    } else {
+      showToast('工蜂正在附近辛勤采蜜，蜂蜜正在酿造中...');
+    }
+  } else if (nearest.type === 'boat') {
+    state.sailing = !state.sailing;
+    audio.playCraft();
+    if (state.sailing) {
+      showToast('⛵ 登上海船！已进入远洋航行状态，水域畅行无阻！');
+      p.speed = 220;
+    } else {
+      showToast('⚓ 抛锚靠岸！下了船板。');
+      p.speed = CHARACTERS[state.character]?.speed || 165;
+    }
+  } else if (nearest.type === 'teleportato_base') {
+    openTeleportatoUI();
+  } else if (nearest.type === 'celestial_altar') {
+    audio.playMagic();
+    p.sanity = p.maxSanity;
+    showToast('🌙 天体祭坛的启蒙光辉洗涤了灵魂！理智值完全回满！');
+  } else if (nearest.type === 'bird_trap') {
+    if (nearest.caught) {
+      if (addToPlayer('bird_item', 1)) {
+        audio.playPickup();
+        showToast('🐦 捕捉到了一只活蹦乱跳的小鸟！');
+        nearest.caught = false;
+        nearest.baited = false;
+      }
+    } else if (!nearest.baited) {
+      if (countTotalItem('seeds') > 0) {
+        removeTotalItem('seeds', 1);
+        nearest.baited = true;
+        nearest.catchTimer = 15;
+        audio.playCraft();
+        showToast('在捕鸟陷阱中撒入了诱饵种子！');
+      } else {
+        showToast('捕鸟陷阱未放置诱饵，撒入【种子】即可开始捕鸟。');
+      }
+    }
   } else if (nearest.type === 'tent') {
     if (state.timeInDay >= 60) {
       p.hp = Math.min(p.maxHp, p.hp + 50);
@@ -2124,6 +2690,29 @@ function attackNearest() {
       updateInventoryUI();
     }
 
+    // Survivor Character Traits Damage Scaling
+    if (state.character === 'wolfgang') {
+      if (p.hunger >= 220) {
+        dmg *= 2.0;
+        showToast('💪 大力士神力爆发！双倍重击！');
+      } else if (p.hunger < 100) {
+        dmg *= 0.75;
+      }
+    } else if (state.character === 'wendy') {
+      dmg *= 0.75;
+    } else if (state.character === 'wigfrid') {
+      dmg *= 1.25;
+      p.hp = Math.min(p.maxHp, p.hp + 2.5);
+      p.sanity = Math.min(p.maxSanity, p.sanity + 2.5);
+    }
+
+    // Beefalo Mounted Trample
+    if (state.beefaloRiding) {
+      dmg += 40;
+      audio.playBeefaloGrunt();
+      showToast('🐂 驾驭皮弗娄牛狂暴践踏！');
+    }
+
     nearest.hp -= dmg;
     createHitParticles(nearest.x, nearest.y, '#e74c3c');
 
@@ -2178,6 +2767,7 @@ function attackNearest() {
       if (state.diary) {
         state.diary.bossesDefeated++;
         state.diary.milestones.slay_deerclops = true;
+        state.diary.chapters.ch2 = true;
         if (state.diary.bossesDefeated >= 4) state.diary.milestones.four_seasons = true;
       }
       showToast('★ 战胜了冬季天灾【独眼巨鹿】！荣获巨鹿眼球！');
@@ -2186,6 +2776,7 @@ function attackNearest() {
       dropWorldItem('meat', nearest.x + 20, nearest.y, 8);
       if (state.diary) {
         state.diary.bossesDefeated++;
+        state.diary.milestones.slay_bearger = true;
         if (state.diary.bossesDefeated >= 4) state.diary.milestones.four_seasons = true;
       }
       showToast('★ 讨伐了秋季巨兽【熊獾】！获得厚皮毛与巨量大肉！');
@@ -2203,6 +2794,8 @@ function attackNearest() {
       dropWorldItem('red_gem', nearest.x - 15, nearest.y, 2);
       if (state.diary) {
         state.diary.bossesDefeated++;
+        state.diary.milestones.slay_dragonfly = true;
+        state.diary.chapters.ch4 = true;
         if (state.diary.bossesDefeated >= 4) state.diary.milestones.four_seasons = true;
       }
       showToast('★ 诛灭了夏季霸主【龙蝇】！荣获无价龙鳞与红宝石！');
@@ -2499,7 +3092,7 @@ function update(dt) {
   // 11. Crock Pot Cooking Timers
   updateCrockpots(dt);
 
-  // 12. Farmplots & Plants Timers
+  // 12. Base Automation & Facilities Timers (Farm, Flingomatic, Drying Rack, Bee Box, Bird Trap)
   for (const ent of state.entities) {
     if (ent.type === 'light_flower' && !ent.harvestable) {
       ent.regrowTimer -= dt;
@@ -2508,6 +3101,34 @@ function update(dt) {
       ent.growTimer += dt;
       if (ent.growTimer >= 90) ent.stage = 2;
       else if (ent.growTimer >= 45) ent.stage = 1;
+    } else if (ent.type === 'drying_rack' && ent.meat && !ent.ready) {
+      ent.timer -= dt;
+      if (ent.timer <= 0) {
+        ent.ready = true;
+        showToast('🥩 晾肉架上的肉类已风干完成！');
+      }
+    } else if (ent.type === 'beebox') {
+      ent.prodTimer = (ent.prodTimer || 0) + dt;
+      if (ent.prodTimer >= 50 && ent.honey < ent.maxHoney) {
+        ent.honey = Math.min(ent.maxHoney, ent.honey + 1);
+        ent.prodTimer = 0;
+      }
+    } else if (ent.type === 'bird_trap' && ent.baited && !ent.caught) {
+      ent.catchTimer = (ent.catchTimer || 15) - dt;
+      if (ent.catchTimer <= 0) {
+        ent.caught = true;
+        ent.baited = false;
+        showToast('🕸️ 捕鸟陷阱触发！抓获了一只小鸟！');
+      }
+    } else if (ent.type === 'flingomatic' && ent.active && ent.fuel > 0) {
+      for (const t of state.entities) {
+        if (t.burning && dist(ent.x, ent.y, t.x, t.y) < ent.range) {
+          t.burning = 0;
+          createHitParticles(t.x, t.y, '#81d4fa');
+          ent.fuel = Math.max(0, ent.fuel - 5);
+          showToast('❄️ 雪球灭火机精准射击雪球！熄灭了火灾！');
+        }
+      }
     }
   }
 
@@ -2520,6 +3141,39 @@ function update(dt) {
       state.chester.y += Math.sin(ca) * (p.speed * 0.95) * dt;
       state.chester.hopTick += dt * 10;
     }
+  }
+
+  // 13.1. Abigail Ghost Follow & AoE Protection
+  if (state.abigail && state.abigail.active) {
+    const ad = dist(p.x, p.y, state.abigail.x, state.abigail.y);
+    if (ad > 65) {
+      const aa = Math.atan2(p.y - state.abigail.y, p.x - state.abigail.x);
+      state.abigail.x += Math.cos(aa) * (p.speed * 1.05) * dt;
+      state.abigail.y += Math.sin(aa) * (p.speed * 1.05) * dt;
+    }
+    state.abigail.attackTimer = (state.abigail.attackTimer || 0) - dt;
+    if (state.abigail.attackTimer <= 0) {
+      for (const ent of state.entities) {
+        if (['spider', 'hound', 'ice_hound', 'fire_hound', 'treeguard', 'deerclops', 'bearger', 'crawling_horror', 'terrorbeak'].includes(ent.type)) {
+          if (dist(state.abigail.x, state.abigail.y, ent.x, ent.y) < 100) {
+            ent.hp -= 22;
+            createHitParticles(ent.x, ent.y, '#ce93d8');
+            state.abigail.attackTimer = 0.9;
+            break;
+          }
+        }
+      }
+    }
+    // Abigail HUD update
+    const abBadge = document.getElementById('abigail-badge');
+    if (abBadge) abBadge.classList.remove('hidden');
+    const abFill = document.getElementById('abigail-hp-fill');
+    if (abFill) abFill.style.width = Math.max(0, (state.abigail.hp / state.abigail.maxHp) * 100) + '%';
+  }
+
+  // 13.2. Mount Badge Update
+  if (state.beefaloRiding) {
+    updateMountBadge();
   }
 
   // Check Game Over
@@ -3051,11 +3705,15 @@ function render() {
   if (state.chester && state.chester.active && state.worldLayer === 'surface') {
     renderList.push({ type: 'chester', y: state.chester.y, obj: state.chester });
   }
+  if (state.abigail && state.abigail.active) {
+    renderList.push({ type: 'abigail', y: state.abigail.y, obj: state.abigail });
+  }
   renderList.sort((a, b) => a.y - b.y);
 
   for (const obj of renderList) {
     if (obj.type === 'player') drawPlayer();
     else if (obj.type === 'chester') drawChester(obj.obj || state.chester);
+    else if (obj.type === 'abigail') drawAbigail(obj.obj || state.abigail);
     else drawEntity(obj);
   }
 
@@ -3075,6 +3733,24 @@ function drawPlayer() {
   const p = state.player;
   ctx.save();
   ctx.translate(p.x, p.y);
+
+  // Beefalo mount under player
+  if (state.beefaloRiding) {
+    ctx.fillStyle = '#3e2723';
+    ctx.beginPath();
+    ctx.ellipse(0, 10, 26, 16, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#d35400';
+    ctx.fillRect(-10, 2, 20, 8); // saddle
+    ctx.strokeStyle = '#f5f5f5';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-14, 0);
+    ctx.lineTo(-22, -12);
+    ctx.moveTo(14, 0);
+    ctx.lineTo(22, -12);
+    ctx.stroke();
+  }
 
   // Shadow
   ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
@@ -3097,28 +3773,68 @@ function drawPlayer() {
     else ctx.fillStyle = '#3d7e34';
     ctx.fillRect(-8, -10, 16, 18);
   } else {
-    ctx.fillStyle = '#8b2500';
+    ctx.fillStyle = state.character === 'wendy' ? '#2980b9' : (state.character === 'wolfgang' ? '#c0392b' : '#8b2500');
     ctx.fillRect(-5, -8, 10, 14);
   }
 
-  // Wilson face
-  ctx.fillStyle = '#eedcc5';
+  // Character Face & Skin
+  ctx.fillStyle = state.character === 'wx78' ? '#78909c' : '#eedcc5';
   ctx.beginPath();
-  ctx.arc(0, -20, 12, 0, Math.PI * 2);
+  ctx.arc(0, -20, state.character === 'wolfgang' && p.hunger >= 220 ? 15 : 12, 0, Math.PI * 2);
   ctx.fill();
 
-  // Wilson hair
-  ctx.fillStyle = '#110d0b';
-  ctx.beginPath();
-  ctx.moveTo(-12, -24);
-  ctx.lineTo(-18, -36);
-  ctx.lineTo(-8, -32);
-  ctx.lineTo(0, -42);
-  ctx.lineTo(8, -32);
-  ctx.lineTo(18, -36);
-  ctx.lineTo(12, -24);
-  ctx.closePath();
-  ctx.fill();
+  // Character Distinct Hair / Headstyle
+  if (state.character === 'wx78') {
+    // WX-78 Antenna & Glowing sensors
+    ctx.strokeStyle = '#37474f';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(0, -32);
+    ctx.lineTo(0, -42);
+    ctx.stroke();
+    ctx.fillStyle = '#ff1744';
+    ctx.beginPath();
+    ctx.arc(0, -43, 3, 0, Math.PI * 2);
+    ctx.fill();
+    // Glowing red eyes
+    ctx.fillStyle = '#ff1744';
+    ctx.fillRect(-6, -22, 3, 3);
+    ctx.fillRect(3, -22, 3, 3);
+  } else if (state.character === 'wendy') {
+    // Wendy blonde pigtails
+    ctx.fillStyle = '#f9e79f';
+    ctx.beginPath();
+    ctx.arc(-10, -22, 6, 0, Math.PI * 2);
+    ctx.arc(10, -22, 6, 0, Math.PI * 2);
+    ctx.fill();
+    // Red flower
+    ctx.fillStyle = '#e74c3c';
+    ctx.beginPath();
+    ctx.arc(8, -28, 4, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (state.character === 'wigfrid') {
+    // Wigfrid Valkyrie braided red hair & winged helm
+    ctx.fillStyle = '#d35400';
+    ctx.fillRect(-12, -26, 4, 16);
+    ctx.fillRect(8, -26, 4, 16);
+    ctx.fillStyle = '#7f8c8d';
+    ctx.beginPath();
+    ctx.arc(0, -24, 14, Math.PI, 0);
+    ctx.fill();
+  } else {
+    // Wilson classic hair
+    ctx.fillStyle = '#110d0b';
+    ctx.beginPath();
+    ctx.moveTo(-12, -24);
+    ctx.lineTo(-18, -36);
+    ctx.lineTo(-8, -32);
+    ctx.lineTo(0, -42);
+    ctx.lineTo(8, -32);
+    ctx.lineTo(18, -36);
+    ctx.lineTo(12, -24);
+    ctx.closePath();
+    ctx.fill();
+  }
 
   // Head equipment
   if (p.equipped.head) {
@@ -3230,6 +3946,40 @@ function drawChester(c) {
   ctx.fillStyle = '#4e342e';
   ctx.fillRect(-10, 2, 6, 4);
   ctx.fillRect(4, 2, 6, 4);
+
+  ctx.restore();
+}
+
+function drawAbigail(ab) {
+  ctx.save();
+  ctx.translate(ab.x, ab.y);
+
+  // Translucent glowing spirit aura
+  ctx.fillStyle = 'rgba(230, 215, 255, 0.65)';
+  ctx.beginPath();
+  ctx.arc(0, -18, 14, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Flowing ghostly dress
+  ctx.beginPath();
+  ctx.moveTo(-12, -10);
+  ctx.lineTo(-16, 8);
+  ctx.lineTo(0, 14);
+  ctx.lineTo(16, 8);
+  ctx.lineTo(12, -10);
+  ctx.closePath();
+  ctx.fill();
+
+  // Abigail red flower
+  ctx.fillStyle = '#ff1744';
+  ctx.beginPath();
+  ctx.arc(8, -26, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Ghostly glowing eyes
+  ctx.fillStyle = '#4a148c';
+  ctx.fillRect(-5, -20, 2, 4);
+  ctx.fillRect(3, -20, 2, 4);
 
   ctx.restore();
 }
@@ -3515,6 +4265,92 @@ function drawEntity(ent) {
     ctx.lineTo(28, 10);
     ctx.closePath();
     ctx.fill();
+  } else if (ent.type === 'flingomatic') {
+    ctx.fillStyle = '#546e7a';
+    ctx.fillRect(-14, -16, 28, 20);
+    ctx.fillStyle = '#00bcd4';
+    ctx.beginPath();
+    ctx.arc(0, -22, 10, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#e0f7fa';
+    ctx.fillRect(-3, -32, 6, 12);
+  } else if (ent.type === 'drying_rack') {
+    ctx.strokeStyle = '#5d4037';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(-16, -24, 32, 28);
+    if (ent.meat) {
+      ctx.fillStyle = ent.ready ? '#8d6e63' : (ent.meat === 'monstermeat' ? '#8e24aa' : '#c62828');
+      ctx.fillRect(-6, -18, 12, 16);
+    }
+  } else if (ent.type === 'birdcage') {
+    ctx.strokeStyle = '#ffd700';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-14, -28, 28, 30);
+    ctx.beginPath();
+    ctx.arc(0, -28, 14, Math.PI, 0);
+    ctx.stroke();
+    if (ent.hasBird) {
+      ctx.font = '16px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🐦', 0, -10);
+    }
+  } else if (ent.type === 'beebox') {
+    ctx.fillStyle = '#ffb300';
+    ctx.fillRect(-14, -18, 28, 20);
+    ctx.fillStyle = '#4e342e';
+    ctx.fillRect(-12, -12, 24, 3);
+    ctx.fillRect(-12, -4, 24, 3);
+  } else if (ent.type === 'boat') {
+    ctx.fillStyle = '#4e342e';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 36, 20, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#8d6e63';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.fillStyle = '#fff8e1';
+    ctx.fillRect(-2, -30, 4, 30);
+    ctx.beginPath();
+    ctx.moveTo(2, -28);
+    ctx.lineTo(20, -18);
+    ctx.lineTo(2, -8);
+    ctx.closePath();
+    ctx.fill();
+  } else if (ent.type === 'teleportato_base') {
+    ctx.fillStyle = '#37474f';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 38, 22, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#9c27b0';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(0, -6, 16, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.fillStyle = '#ab47bc';
+    ctx.beginPath();
+    ctx.arc(0, -6, 8, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (ent.type === 'celestial_altar') {
+    ctx.fillStyle = '#cfd8dc';
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 34, 18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#80deea';
+    ctx.beginPath();
+    ctx.moveTo(-12, -6);
+    ctx.lineTo(0, -28);
+    ctx.lineTo(12, -6);
+    ctx.closePath();
+    ctx.fill();
+  } else if (ent.type === 'bird_trap') {
+    ctx.strokeStyle = '#8d6e63';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-10, -10, 20, 14);
+    if (ent.caught) {
+      ctx.font = '12px serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('🐦', 0, -2);
+    }
   }
 
   ctx.restore();
@@ -3787,9 +4623,38 @@ function openDiaryUI() {
     <div class="stat-item"><span class="stat-num">${d.monstersKilled}</span><span class="stat-label">讨伐怪物</span></div>
     <div class="stat-item"><span class="stat-num">${d.bossesDefeated}</span><span class="stat-label">讨伐霸主</span></div>
     <div class="stat-item"><span class="stat-num">${state.prototypedRecipes.size}</span><span class="stat-label">研发蓝图</span></div>
-    <div class="stat-item"><span class="stat-num">${d.dishesCooked}</span><span class="stat-label">烹饪佳肴</span></div>
-    <div class="stat-item"><span class="stat-num">${d.cavesExplored}</span><span class="stat-label">洞穴探秘</span></div>
+    <div class="stat-item"><span class="stat-num">${d.beefaloTamed || 0}</span><span class="stat-label">驯养巨兽</span></div>
+    <div class="stat-item"><span class="stat-num">${state.worldCycle || 1}</span><span class="stat-label">平行维度</span></div>
   `;
+
+  // 70h Chapter Quests Campaign
+  const cListEl = document.getElementById('chapters-list');
+  if (cListEl) {
+    cListEl.innerHTML = '<div style="font-size:12px; font-weight:bold; color:#ffd073; margin-bottom:6px;">🌟 70小时主线战役史诗 (EPIC CHAPTERS)</div>';
+    const chaptersDef = [
+      { id: 'ch1', title: '第一章：荒野筑基', desc: '研发科学仪器与瓦罐烹饪锅，度过最初的荒野之夜。', done: () => d.milestones.survive_night && state.prototypedRecipes.size >= 2 },
+      { id: 'ch2', title: '第二章：凛冬苦寒', desc: '制造保暖冬装，战胜严冬并击溃暴风雪巨兽【独眼巨鹿】。', done: () => d.milestones.slay_deerclops },
+      { id: 'ch3', title: '第三章：万物生息', desc: '搭建蜂箱培育蜂群，成功驯养并套鞍一头皮弗娄牛。', done: () => d.milestones.tame_beefalo },
+      { id: 'ch4', title: '第四章：酷暑炼狱', desc: '研发自动雪球灭火机，斩杀炽热狂暴的夏季领主【龙蝇】。', done: () => d.milestones.slay_dragonfly || d.chapters.ch4 },
+      { id: 'ch5', title: '第五章：深渊织影', desc: '开凿落水洞岩塞，潜入地下深渊开采铥矿并研习暗影古法。', done: () => d.milestones.enter_caves && d.milestones.magic_apprentice },
+      { id: 'ch6', title: '第六章：扬帆天体', desc: '制造远洋造船套件出海远征，登陆远洋极地的天体月岛。', done: () => d.milestones.sail_boat || d.milestones.reach_lunar },
+      { id: 'ch7', title: '第七章：维度飞升', desc: '集齐散落的麦斯威尔五大遗物零件，启动传送阵跃迁平行宇宙！', done: () => d.milestones.teleportato_jump || (state.worldCycle > 1) }
+    ];
+
+    chaptersDef.forEach(ch => {
+      const isDone = ch.done();
+      const card = document.createElement('div');
+      card.className = `chapter-card ${isDone ? 'completed' : ''}`;
+      card.innerHTML = `
+        <div class="chapter-header">
+          <span>${ch.title}</span>
+          <span style="color:${isDone ? '#2ecc71' : '#e67e22'}">${isDone ? '已达成 ★' : '进行中 ⏳'}</span>
+        </div>
+        <div class="chapter-desc">${ch.desc}</div>
+      `;
+      cListEl.appendChild(card);
+    });
+  }
 
   // Milestones list
   const mListEl = document.getElementById('milestones-list');
@@ -3798,10 +4663,15 @@ function openDiaryUI() {
     { key: 'science_rev', icon: '⚙️', name: '工业先锋', desc: '研发制造科学仪器与炼金引擎' },
     { key: 'master_chef', icon: '🍳', name: '大厨之魂', desc: '在瓦罐烹饪锅中烹调出美味经典大餐' },
     { key: 'find_chester', icon: '🐾', name: '忠诚伙伴', desc: '寻获眼骨并唤醒随行切斯特狗箱' },
+    { key: 'tame_beefalo', icon: '🐂', name: '狂野骑手', desc: '投喂干草并套上鞍具，驾驭皮弗娄牛驰骋荒野' },
     { key: 'enter_caves', icon: '🕯️', name: '深邃探秘', desc: '开凿落水洞岩塞，潜入深邃幽暗的地下洞穴' },
     { key: 'magic_apprentice', icon: '🔮', name: '暗影学徒', desc: '制造灵子分解器或暗影操纵仪，踏入魔法殿堂' },
     { key: 'slay_deerclops', icon: '❄️', name: '凛冬屠夫', desc: '战胜冬季天灾巨兽【独眼巨鹿】并取得眼球' },
+    { key: 'slay_dragonfly', icon: '🔥', name: '屠龙之誓', desc: '斩杀夏季狂暴领主【龙蝇】并取得远古龙鳞' },
+    { key: 'sail_boat', icon: '⛵', name: '大航海家', desc: '建造远洋海船，扬帆探索无边广袤大洋' },
+    { key: 'reach_lunar', icon: '🌙', name: '天体启蒙', desc: '登陆远洋深处的天体月岛并激活天体祭坛' },
     { key: 'four_seasons', icon: '👑', name: '四季霸主', desc: '诛灭四季四位霸主巨兽（巨鹿、熊獾、鹿鸭、龙蝇）' },
+    { key: 'teleportato_jump', icon: '🌀', name: '跨维行者', desc: '启动麦斯威尔传送阵，飞升跨越平行宇宙维度' },
     { key: 'eternal_lord', icon: '🏆', name: '永恒领主', desc: '在永恒荒野中存活超过 30 天，成为荒野传奇' }
   ];
 
@@ -4010,6 +4880,36 @@ function setupInputs() {
     audio.init();
     restartWorld();
   };
+
+  // Character selection cards
+  document.querySelectorAll('.char-card').forEach(card => {
+    card.onclick = () => {
+      document.querySelectorAll('.char-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      const charId = card.getAttribute('data-char');
+      if (charId && CHARACTERS[charId]) {
+        selectCharacter(charId);
+        audio.playCraft();
+        showToast(`已选择求生先锋【${CHARACTERS[charId].name}】！${CHARACTERS[charId].desc}`);
+      }
+    };
+  });
+
+  // Teleportato modal close
+  const btnCloseTele = document.getElementById('btn-close-teleportato');
+  if (btnCloseTele) {
+    btnCloseTele.onclick = () => {
+      document.getElementById('teleportato-modal').classList.add('hidden');
+    };
+  }
+
+  // Dismount Beefalo
+  const btnDismount = document.getElementById('btn-dismount');
+  if (btnDismount) {
+    btnDismount.onclick = () => {
+      dismountBeefalo();
+    };
+  }
 }
 
 // --- 16. Game Initialization ---

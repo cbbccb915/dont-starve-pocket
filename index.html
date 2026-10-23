@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>饥荒：永恒之境 (Don't Starve Complete)</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=2.3">
+  <link rel="stylesheet" href="style.css?v=3.0">
 </head>
 <body>
   <div id="game-container">
@@ -23,7 +23,7 @@
         </div>
         <div class="hud-btn-row">
           <button id="btn-save-game" class="gothic-btn mini-btn" title="保存/读取存档">💾 存档</button>
-          <button id="btn-diary" class="gothic-btn mini-btn" title="生存历程与成就">📜 历程</button>
+          <button id="btn-diary" class="gothic-btn mini-btn" title="70h开拓史诗与历程">📜 历程</button>
         </div>
       </div>
 
@@ -66,6 +66,17 @@
             <span class="env-icon">💧</span>
             <span id="wet-val">0%</span>
           </div>
+          <!-- Beefalo Mount Badge -->
+          <div class="mini-env-badge hidden" id="mount-badge" title="骑乘状态">
+            <span class="env-icon">🐃</span>
+            <span id="mount-hp-text">500HP</span>
+            <button id="btn-dismount" class="gothic-btn micro-btn">下牛</button>
+          </div>
+          <!-- Abigail Sister Summon Badge -->
+          <div class="mini-env-badge hidden" id="abigail-badge" title="阿比盖尔守护灵">
+            <span class="env-icon">👻</span>
+            <span id="abigail-hp-text">300HP</span>
+          </div>
         </div>
       </div>
 
@@ -98,6 +109,9 @@
         <button class="cat-btn" data-cat="science">⚙️ 科学</button>
         <button class="cat-btn" data-cat="magic">🔮 魔法远古</button>
         <button class="cat-btn" data-cat="food">🍲 烹饪农业</button>
+        <button class="cat-btn" data-cat="refine">⛺ 建筑精炼</button>
+        <button class="cat-btn" data-cat="nautical">⛵ 远洋航海</button>
+      </div>
         <button class="cat-btn" data-cat="structures">⛺ 建筑精炼</button>
       </div>
       <div id="recipes-list" class="recipes-container">
@@ -257,8 +271,28 @@
         <div class="diary-stats-summary" id="diary-stats-content">
           <!-- Injected dynamically -->
         </div>
+        <div class="chapter-container" id="chapters-list">
+          <!-- 7-Chapter 70h campaign injected dynamically -->
+        </div>
         <div class="milestones-grid" id="milestones-list">
           <!-- Injected dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Teleportato Modal (麦斯威尔传送门/跳世界) -->
+    <div id="teleportato-modal" class="hidden">
+      <div class="gothic-panel teleportato-box">
+        <div class="modal-header">
+          <h2>🌀 麦斯威尔跳世界传送机</h2>
+          <button id="btn-close-teleportato" class="close-x">✕</button>
+        </div>
+        <p class="teleportato-intro">集齐并安装 5 个麦斯威尔遗物零件，即可激活远古跨维度传送阵，飞升进入下一个更严峻的轮回荒野！</p>
+        <div class="teleportato-parts-grid" id="teleportato-parts-list">
+          <!-- Injected dynamically -->
+        </div>
+        <div class="teleportato-actions">
+          <button id="btn-activate-teleportato" class="gothic-btn highlight" disabled>⚡ 激活传送阵飞升</button>
         </div>
       </div>
     </div>
@@ -276,6 +310,8 @@
           <span>🟡 稀树草原(牛群)</span>
           <span>🟤 矿区</span>
           <span>🟣 沼泽</span>
+          <span>🌊 远洋海岸</span>
+          <span>🌙 天体月岛</span>
           <span>⛺ 营地设施</span>
           <span>🔺 玩家当前位置</span>
         </div>
@@ -332,17 +368,60 @@
       </div>
     </div>
 
-    <!-- Welcome / Start Screen -->
+    <!-- Welcome / Start Screen with Character Select -->
     <div id="start-screen">
       <div class="start-box gothic-panel">
         <h1 class="game-title">饥荒：永恒之境</h1>
-        <h3 class="game-subtitle">DON'T STARVE COMPLETE</h3>
+        <h3 class="game-subtitle">DON'T STARVE COMPLETE · 70H EPIC</h3>
+
+        <!-- Character Selection Cards -->
+        <div class="char-select-section">
+          <h4 class="char-select-title">选择你的求生者 (SURVIVOR)</h4>
+          <div class="char-cards-container" id="char-cards-list">
+            <div class="char-card active" data-char="wilson">
+              <div class="char-avatar">👨‍🔬</div>
+              <div class="char-info">
+                <div class="char-name">威尔逊 (Wilson)</div>
+                <div class="char-desc">绅士科学家。生长胡须抵御严寒，剃须可获胡须与理智。全能平衡。</div>
+              </div>
+            </div>
+            <div class="char-card" data-char="wendy">
+              <div class="char-avatar">👧</div>
+              <div class="char-info">
+                <div class="char-name">温蒂 (Wendy)</div>
+                <div class="char-desc">丧亲哀恸者。自带阿比盖尔的花，黄昏夜间召唤孪生姐姐鬼魂群攻助战！</div>
+              </div>
+            </div>
+            <div class="char-card" data-char="wolfgang">
+              <div class="char-avatar">🏋️</div>
+              <div class="char-info">
+                <div class="char-name">沃尔夫冈 (Wolfgang)</div>
+                <div class="char-desc">大力士。饱食度越高越强壮！处于极度饱食时变身巨汉，输出翻倍。</div>
+              </div>
+            </div>
+            <div class="char-card" data-char="wx78">
+              <div class="char-avatar">🤖</div>
+              <div class="char-info">
+                <div class="char-name">WX-78 (机器人)</div>
+                <div class="char-desc">冷酷机械。可吞噬齿轮永久升级三维上限！雷击过载发光加速，怕水。</div>
+              </div>
+            </div>
+            <div class="char-card" data-char="wigfrid">
+              <div class="char-avatar">🛡️</div>
+              <div class="char-info">
+                <div class="char-name">薇格弗德 (Wigfrid)</div>
+                <div class="char-desc">瓦尔基里女武神。战吼吸血吸脑，专属战矛战盔！纯肉食狂热战士。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="rules-summary">
-          <p>🍂 <b>四季与体温</b>：秋季备战，冬季严寒刺骨需保暖石，春季暴雨潮湿防雷，夏季酷暑烈火需避暑！</p>
-          <p>🔬 <b>四级科技树</b>：科学机器、炼金引擎、灵子分解器、暗影操纵仪，解锁远古铥矿神装与魔杖！</p>
-          <p>📦 <b>切斯特与地下洞穴</b>：寻找眼骨召唤移动宝箱切斯特（月圆升级），凿开被封印的洞口探秘地底废墟！</p>
-          <p>👹 <b>四大季节巨兽</b>：冬季独眼巨鹿、秋季熊獾暴怒抢食、春季鹿鸭雷鸣呼啸、夏季龙蝇焚尽万物！</p>
-          <p>💾 <b>持久存档与成就</b>：支持三栏本地存档与每日清晨自动保存，历程面板记录击杀巨兽与生存里程碑！</p>
+          <p>🍂 <b>四季与体温</b>：秋季备战，冬季严寒需保暖石，春季暴雨防雷潮湿，夏季酷暑灭火避暑！</p>
+          <p>🐃 <b>牛群骑乘与基地自动化</b>：牛鞍驯养骑乘冲刺，晾肉架风干肉干，雪球灭火机全自动保卫家园！</p>
+          <p>⛵ <b>远洋海航与天体月岛</b>：搭建船只横渡大洋，寻找月岛采集月玻璃，供奉天体祭坛解锁启蒙科技！</p>
+          <p>👹 <b>六大传奇霸主</b>：四季巨鹿/熊獾/鹿鸭/龙蝇，洞穴迷宫远古犀牛，冬日冰火双鹿克劳斯！</p>
+          <p>🌀 <b>跳世界与传送机</b>：集齐零件组装跳世界机，带着稀世珍宝飞升开启无尽维度挑战！</p>
         </div>
         <button id="btn-play" class="gothic-btn highlight" style="font-size:18px; padding:12px 28px;">进入荒野求生</button>
         <div class="control-hints">
@@ -353,6 +432,6 @@
     </div>
   </div>
 
-  <script src="game.js?v=2.3"></script>
+  <script src="game.js?v=3.0"></script>
 </body>
 </html>

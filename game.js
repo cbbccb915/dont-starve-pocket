@@ -2206,18 +2206,26 @@ function interactNearest() {
   }
 
   let nearest = null;
-  let minDist = 85;
+  let minEffectiveDist = 85;
 
   for (const ent of interactCandidates) {
+    if (ent.type === 'bush' && !ent.hasBerries) continue;
+    if (ent.type === 'sapling' && !ent.harvestable) continue;
+    if (ent.type === 'grass_tuft' && !ent.harvestable) continue;
+    if (ent.type === 'light_flower' && !ent.harvestable) continue;
+
     const d = dist(p.x, p.y, ent.x, ent.y);
-    if (d < minDist) {
+    if (d < 85) {
       if (['drop', 'tree', 'rock', 'bush', 'sapling', 'grass_tuft', 'flower', 'planted_carrot',
            'campfire', 'firepit', 'science_machine', 'alchemy_engine', 'prestihatitator', 'shadow_manipulator',
            'chest', 'crockpot', 'tent', 'pig_king', 'pig', 'beefalo', 'chester', 'cave_entrance', 'cave_exit',
            'light_flower', 'farmplot', 'stalagmite', 'thulecite_rock', 'pond', 'ancient_station',
            'drying_rack', 'birdcage', 'beebox', 'boat', 'teleportato_base', 'celestial_altar', 'bird_trap'].includes(ent.type)) {
-        minDist = d;
-        nearest = ent;
+        const effDist = ent.type === 'drop' ? d - 40 : d;
+        if (effDist < minEffectiveDist) {
+          minEffectiveDist = effDist;
+          nearest = ent;
+        }
       }
     }
   }
@@ -3301,17 +3309,25 @@ function updateContextActionPrompt() {
   }
 
   let nearest = null;
-  let minDist = 90;
+  let minEffectiveDist = 90;
   for (const ent of interactCandidates) {
+    if (ent.type === 'bush' && !ent.hasBerries) continue;
+    if (ent.type === 'sapling' && !ent.harvestable) continue;
+    if (ent.type === 'grass_tuft' && !ent.harvestable) continue;
+    if (ent.type === 'light_flower' && !ent.harvestable) continue;
+
     const d = dist(p.x, p.y, ent.x, ent.y);
-    if (d < minDist) {
+    if (d < 90) {
       if (['drop', 'tree', 'rock', 'bush', 'sapling', 'grass_tuft', 'flower', 'planted_carrot',
            'campfire', 'firepit', 'science_machine', 'alchemy_engine', 'prestihatitator', 'shadow_manipulator',
            'chest', 'crockpot', 'tent', 'pig_king', 'pig', 'beefalo', 'chester', 'cave_entrance', 'cave_exit',
            'light_flower', 'farmplot', 'stalagmite', 'thulecite_rock', 'pond', 'ancient_station',
            'drying_rack', 'birdcage', 'beebox', 'boat', 'teleportato_base', 'celestial_altar', 'bird_trap'].includes(ent.type)) {
-        minDist = d;
-        nearest = ent;
+        const effDist = ent.type === 'drop' ? d - 40 : d;
+        if (effDist < minEffectiveDist) {
+          minEffectiveDist = effDist;
+          nearest = ent;
+        }
       }
     }
   }
@@ -5871,17 +5887,42 @@ function setupInputs() {
   closeBtn.addEventListener('click', closeCraftingDrawer);
   closeBtn.addEventListener('pointerdown', closeCraftingDrawer);
 
-  // Category Tab Switching with instant mobile touch response
+  // Category Tab Switching with instant mobile touch response & event delegation
+  const catBar = document.getElementById('craft-categories-bar');
+  const handleCatTabClick = (btn) => {
+    if (!btn) return;
+    audio.init();
+    document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    updateRecipesUI();
+  };
+
+  if (catBar) {
+    catBar.addEventListener('click', (e) => {
+      const btn = e.target.closest('.cat-btn');
+      if (btn) {
+        e.stopPropagation();
+        handleCatTabClick(btn);
+      }
+    });
+    catBar.addEventListener('pointerdown', (e) => {
+      const btn = e.target.closest('.cat-btn');
+      if (btn) {
+        e.stopPropagation();
+        handleCatTabClick(btn);
+      }
+    });
+  }
+
   document.querySelectorAll('.cat-btn').forEach(btn => {
-    const handleCatSwitch = (e) => {
-      if (e) e.stopPropagation();
-      audio.init();
-      document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      updateRecipesUI();
-    };
-    btn.addEventListener('click', handleCatSwitch);
-    btn.addEventListener('pointerdown', handleCatSwitch);
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      handleCatTabClick(btn);
+    });
+    btn.addEventListener('pointerdown', (e) => {
+      e.stopPropagation();
+      handleCatTabClick(btn);
+    });
   });
 
   const handlePlay = (e) => {

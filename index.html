@@ -89,30 +89,28 @@
     </div>
 
     <!-- Crafting Toggle Tab (Left) -->
-    <div id="crafting-tab-btn" class="gothic-btn">🔨 科技制造</div>
+    <div id="crafting-tab-btn" class="gothic-btn">🔨 制造蓝图</div>
 
     <!-- Crafting Panel Drawer -->
     <div id="crafting-drawer" class="hidden">
       <div class="drawer-header">
-        <span>科技与生存蓝图</span>
+        <span>📜 科技与生存制造蓝图</span>
         <button id="close-crafting-btn" class="close-x">✕</button>
       </div>
       <!-- Prototyping Level Banner -->
       <div id="tech-tier-banner">
         <span id="tech-level-text">🔬 科技等级: 基础手搓 (需靠近科学仪器解锁)</span>
       </div>
-      <div class="craft-categories">
-        <button class="cat-btn active" data-cat="light">🔥 光照</button>
-        <button class="cat-btn" data-cat="tools">🪓 工具</button>
+      <div class="craft-categories" id="craft-categories-bar">
+        <button class="cat-btn active" data-cat="tools">🪓 工具</button>
+        <button class="cat-btn" data-cat="light">🔥 光照</button>
         <button class="cat-btn" data-cat="survival">🌿 生存</button>
         <button class="cat-btn" data-cat="weapons">⚔️ 战斗</button>
         <button class="cat-btn" data-cat="science">⚙️ 科学</button>
-        <button class="cat-btn" data-cat="magic">🔮 魔法远古</button>
-        <button class="cat-btn" data-cat="food">🍲 烹饪农业</button>
-        <button class="cat-btn" data-cat="refine">⛺ 建筑精炼</button>
-        <button class="cat-btn" data-cat="nautical">⛵ 远洋航海</button>
-      </div>
-        <button class="cat-btn" data-cat="structures">⛺ 建筑精炼</button>
+        <button class="cat-btn" data-cat="structures">⛺ 建筑</button>
+        <button class="cat-btn" data-cat="magic">🔮 魔法</button>
+        <button class="cat-btn" data-cat="food">🍲 烹饪</button>
+        <button class="cat-btn" data-cat="nautical">⛵ 航海</button>
       </div>
       <div id="recipes-list" class="recipes-container">
         <!-- Injected dynamically -->

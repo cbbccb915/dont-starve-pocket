@@ -1597,14 +1597,19 @@ function craftRecipe(rec) {
   }
 
   // Check materials
+  const missing = [];
   for (const [matId, amt] of Object.entries(rec.req)) {
-    if (countTotalItem(matId) < amt) {
-      showToast('材料不足！');
-      return;
+    const owned = countTotalItem(matId);
+    if (owned < amt) {
+      missing.push(`${ITEMS[matId]?.name || matId} (${owned}/${amt})`);
     }
   }
+  if (missing.length > 0) {
+    showToast(`材料不足！缺少: ${missing.join(', ')}`);
+    return;
+  }
 
-  // Deduct
+  // Deduct materials
   for (const [matId, amt] of Object.entries(rec.req)) {
     removeTotalItem(matId, amt);
   }
@@ -1613,19 +1618,45 @@ function craftRecipe(rec) {
   if (!isPrototyped && rec.tier > 0) {
     state.prototypedRecipes.add(rec.id);
     state.player.sanity = Math.min(state.player.maxSanity, state.player.sanity + 15);
-    showToast(`发明成功！研发【${rec.name}】获得 +15 理智！`);
+    showToast(`💡 发明成功！研发【${rec.name}】获得 +15 理智！`);
   } else {
-    showToast(`制作了 ${rec.name}`);
+    showToast(`🛠️ 制作了 ${rec.name}`);
   }
 
-  addToPlayer(rec.id, 1);
+  // Milestones & Diary
+  if (state.diary) {
+    state.diary.recipesCrafted = (state.diary.recipesCrafted || 0) + 1;
+    if (rec.id === 'axe') state.diary.milestones.craft_axe = true;
+    if (rec.id === 'torch') state.diary.milestones.craft_torch = true;
+    if (rec.id === 'science_machine_item') state.diary.milestones.science_rev = true;
+  }
+
+  // Auto-equip tools or weapons if corresponding slot is empty
+  const itemDef = ITEMS[rec.id];
+  if (itemDef?.equipSlot && !state.player.equipped[itemDef.equipSlot]) {
+    state.player.equipped[itemDef.equipSlot] = {
+      id: rec.id,
+      count: 1,
+      durability: itemDef.durability || (rec.id === 'torch' ? 100 : null),
+      freshness: itemDef.freshnessMax || null,
+      heatStored: rec.id === 'thermal_stone' ? 0 : undefined
+    };
+    showToast(`🛠️ 制作并已自动装备【${rec.name}】！`);
+  } else {
+    addToPlayer(rec.id, 1);
+  }
+
   audio.playCraft();
+  updateInventoryUI();
+  updateHUD();
   updateRecipesUI();
 }
 
 function updateRecipesUI() {
-  const activeCat = document.querySelector('.cat-btn.active')?.dataset.cat || 'light';
+  const activeBtn = document.querySelector('.cat-btn.active');
+  const activeCat = activeBtn?.dataset.cat || 'tools';
   const container = document.getElementById('recipes-list');
+  if (!container) return;
   container.innerHTML = '';
 
   const list = RECIPES.filter(r => r.cat === activeCat);
@@ -1644,16 +1675,31 @@ function updateRecipesUI() {
     }).join(' ');
 
     const card = document.createElement('div');
-    card.className = 'recipe-card';
+    card.className = `recipe-card ${canCraft ? 'craftable' : ''}`;
     card.innerHTML = `
       <div class="recipe-icon">${r.icon}</div>
       <div class="recipe-info">
-        <div class="recipe-name">${r.name} ${r.tier > 0 ? (isPrototyped ? '★' : `(需要${r.tier}本)`) : ''}</div>
+        <div class="recipe-name">
+          <span>${r.name}</span>
+          ${r.tier > 0 ? (isPrototyped ? '<span style="color:#f1c40f;font-size:10px;">★已掌握</span>' : `<span style="color:#e67e22;font-size:10px;">(需${r.tier}本)</span>`) : ''}
+        </div>
         <div class="recipe-reqs">${reqSpans}</div>
       </div>
       <button class="craft-btn" ${canCraft ? '' : 'disabled'}>${isPrototyped ? '制作' : (r.tier > 0 ? '研发' : '制作')}</button>
     `;
-    card.querySelector('.craft-btn').onclick = () => craftRecipe(r);
+
+    const triggerCraft = (e) => {
+      if (e) e.stopPropagation();
+      craftRecipe(r);
+    };
+
+    const craftBtn = card.querySelector('.craft-btn');
+    craftBtn.addEventListener('click', triggerCraft);
+    craftBtn.addEventListener('pointerdown', triggerCraft);
+
+    // Tapping recipe card body also triggers craft
+    card.addEventListener('click', triggerCraft);
+
     container.appendChild(card);
   });
 }
@@ -3228,6 +3274,149 @@ function update(dt) {
   }
 
   updateHUD();
+  updateContextActionPrompt();
+}
+
+function updateContextActionPrompt() {
+  const p = state.player;
+  const btnInteract = document.getElementById('btn-action-interact');
+  const btnAttack = document.getElementById('btn-action-attack');
+  if (!btnInteract || !btnAttack) return;
+
+  const iconInteract = btnInteract.querySelector('.btn-icon');
+  const textInteract = btnInteract.querySelector('.btn-text');
+  const iconAttack = btnAttack.querySelector('.btn-icon');
+  const textAttack = btnAttack.querySelector('.btn-text');
+
+  // Find nearest interactable candidate
+  let interactCandidates = [...state.entities];
+  if (state.chester && state.chester.active && state.worldLayer === 'surface') {
+    interactCandidates.push({ type: 'chester', x: state.chester.x, y: state.chester.y });
+  }
+
+  let nearest = null;
+  let minDist = 90;
+  for (const ent of interactCandidates) {
+    const d = dist(p.x, p.y, ent.x, ent.y);
+    if (d < minDist) {
+      if (['drop', 'tree', 'rock', 'bush', 'sapling', 'grass_tuft', 'flower', 'planted_carrot',
+           'campfire', 'firepit', 'science_machine', 'alchemy_engine', 'prestihatitator', 'shadow_manipulator',
+           'chest', 'crockpot', 'tent', 'pig_king', 'pig', 'beefalo', 'chester', 'cave_entrance', 'cave_exit',
+           'light_flower', 'farmplot', 'stalagmite', 'thulecite_rock', 'pond', 'ancient_station',
+           'drying_rack', 'birdcage', 'beebox', 'boat', 'teleportato_base', 'celestial_altar', 'bird_trap'].includes(ent.type)) {
+        minDist = d;
+        nearest = ent;
+      }
+    }
+  }
+
+  if (nearest) {
+    btnInteract.classList.add('highlight');
+    if (nearest.type === 'drop') {
+      const name = ITEMS[nearest.itemId]?.name || '物品';
+      iconInteract.innerText = '✋';
+      textInteract.innerText = `拾取${name}`;
+    } else if (nearest.type === 'tree') {
+      const hasAxe = p.equipped.hand && ITEMS[p.equipped.hand.id]?.toolType === 'axe';
+      iconInteract.innerText = '🪓';
+      textInteract.innerText = hasAxe ? '砍伐树木' : '需草柄斧';
+    } else if (nearest.type === 'rock' || nearest.type === 'stalagmite' || nearest.type === 'thulecite_rock') {
+      const hasPick = p.equipped.hand && ITEMS[p.equipped.hand.id]?.toolType === 'pickaxe';
+      iconInteract.innerText = '⛏️';
+      textInteract.innerText = hasPick ? '开采矿石' : '需鹤嘴锄';
+    } else if (nearest.type === 'bush') {
+      iconInteract.innerText = '🍓';
+      textInteract.innerText = nearest.hasBerries ? '采摘浆果' : '空灌木丛';
+    } else if (nearest.type === 'grass_tuft') {
+      iconInteract.innerText = '🌾';
+      textInteract.innerText = '采集干草';
+    } else if (nearest.type === 'sapling') {
+      iconInteract.innerText = '🌿';
+      textInteract.innerText = '采集树枝';
+    } else if (nearest.type === 'flower') {
+      iconInteract.innerText = '🌸';
+      textInteract.innerText = '采摘野花';
+    } else if (nearest.type === 'planted_carrot') {
+      iconInteract.innerText = '🥕';
+      textInteract.innerText = '拔胡萝卜';
+    } else if (nearest.type === 'beefalo') {
+      if (state.beefaloRiding) {
+        iconInteract.innerText = '🏇';
+        textInteract.innerText = '下牛';
+      } else if (nearest.saddled) {
+        iconInteract.innerText = '🏇';
+        textInteract.innerText = '骑乘皮弗娄牛';
+      } else if (p.equipped.hand && p.equipped.hand.id === 'razor') {
+        iconInteract.innerText = '✂️';
+        textInteract.innerText = '剪取牛毛';
+      } else {
+        iconInteract.innerText = '🐂';
+        textInteract.innerText = '喂食驯化';
+      }
+    } else if (nearest.type === 'chester') {
+      iconInteract.innerText = '🦴';
+      textInteract.innerText = '打开切斯特';
+    } else if (nearest.type === 'chest') {
+      iconInteract.innerText = '📦';
+      textInteract.innerText = '打开木箱';
+    } else if (nearest.type === 'crockpot') {
+      iconInteract.innerText = '🍲';
+      textInteract.innerText = '瓦罐烹饪';
+    } else if (nearest.type === 'campfire' || nearest.type === 'firepit') {
+      iconInteract.innerText = '🔥';
+      textInteract.innerText = '添加燃料';
+    } else if (nearest.type === 'tent') {
+      iconInteract.innerText = '⛺';
+      textInteract.innerText = '野营休息';
+    } else if (['science_machine', 'alchemy_engine', 'prestihatitator', 'shadow_manipulator'].includes(nearest.type)) {
+      iconInteract.innerText = '🔬';
+      textInteract.innerText = '科技研发';
+    } else if (nearest.type === 'drying_rack') {
+      iconInteract.innerText = '🥩';
+      textInteract.innerText = nearest.ready ? '收获肉干' : (nearest.meat ? '风干中' : '悬挂大肉');
+    } else if (nearest.type === 'farmplot') {
+      iconInteract.innerText = '🌱';
+      textInteract.innerText = nearest.crop ? (nearest.stage >= 2 ? '收获农作物' : '施肥堆肥') : '播种种田';
+    } else if (nearest.type === 'boat') {
+      iconInteract.innerText = '⛵';
+      textInteract.innerText = state.sailing ? '靠岸停泊' : '登船启航';
+    } else if (nearest.type === 'cave_entrance') {
+      iconInteract.innerText = '🕳️';
+      textInteract.innerText = nearest.plugged ? '敲碎岩塞' : '探索洞穴';
+    } else if (nearest.type === 'cave_exit') {
+      iconInteract.innerText = '🪜';
+      textInteract.innerText = '重返地面';
+    } else {
+      iconInteract.innerText = '✋';
+      textInteract.innerText = '互动';
+    }
+  } else {
+    btnInteract.classList.remove('highlight');
+    iconInteract.innerText = '✋';
+    textInteract.innerText = '互动';
+  }
+
+  // Find nearest hostile target
+  const handItem = p.equipped.hand ? ITEMS[p.equipped.hand.id] : null;
+  const isRangedStaff = handItem?.isStaff;
+  const attackRange = isRangedStaff ? 260 : 85;
+  const hostileTypes = [
+    'spider', 'hound', 'ice_hound', 'fire_hound', 'treeguard',
+    'deerclops', 'bearger', 'moosegoose', 'dragonfly',
+    'shadow_creature', 'crawling_horror', 'terrorbeak',
+    'rabbit', 'batilisk', 'slurtle', 'clockwork_knight'
+  ];
+
+  const hasHostile = state.entities.some(e => hostileTypes.includes(e.type) && dist(p.x, p.y, e.x, e.y) < attackRange);
+  if (hasHostile) {
+    btnAttack.classList.add('highlight');
+    iconAttack.innerText = '⚔️';
+    textAttack.innerText = '攻击目标';
+  } else {
+    btnAttack.classList.remove('highlight');
+    iconAttack.innerText = '⚔️';
+    textAttack.innerText = '攻击';
+  }
 }
 
 function updateWeatherAndTemp(dt, isNight) {
@@ -3680,6 +3869,750 @@ function renderClock() {
   clockCtx.fill();
 }
 
+function drawTerrainDetails() {
+  const startX = Math.floor(state.camera.x / 80) * 80;
+  const startY = Math.floor(state.camera.y / 80) * 80;
+  const endX = state.camera.x + canvas.width + 80;
+  const endY = state.camera.y + canvas.height + 80;
+
+  const isWinter = state.season === 'winter';
+  const isSpring = state.season === 'spring';
+  const isAutumn = state.season === 'autumn';
+  const isSummer = state.season === 'summer';
+  const isCaves = state.worldLayer === 'caves';
+
+  for (let x = startX; x < endX; x += 80) {
+    for (let y = startY; y < endY; y += 80) {
+      // Deterministic hash based on world coordinate
+      const h1 = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453) % 1;
+      const h2 = Math.abs(Math.cos(x * 39.3456 + y * 19.876) * 23421.631) % 1;
+
+      const px = x + (h1 * 60) + 10;
+      const py = y + (h2 * 60) + 10;
+
+      if (h1 < 0.28) {
+        // Small pebble / stone
+        ctx.fillStyle = 'rgba(0,0,0,0.22)';
+        ctx.beginPath();
+        ctx.ellipse(px + 1, py + 1, 3.5, 2, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = isCaves ? '#3d3838' : (isWinter ? '#78828a' : '#4a3f35');
+        ctx.beginPath();
+        ctx.ellipse(px, py, 3, 2, 0.2, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (h1 < 0.55) {
+        // Tiny grass / lichen sprouts
+        ctx.strokeStyle = isCaves ? '#2e4530' : (isWinter ? '#5a6b73' : (isSpring ? '#4caf50' : '#334425'));
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.moveTo(px, py);
+        ctx.lineTo(px - 3, py - 6);
+        ctx.moveTo(px + 2, py);
+        ctx.lineTo(px + 5, py - 7);
+        ctx.stroke();
+      } else if (h1 < 0.72) {
+        // Seasonal ground flora
+        if (isAutumn) {
+          ctx.fillStyle = h2 < 0.5 ? '#b24a2b' : '#c27d38';
+          ctx.beginPath();
+          ctx.ellipse(px, py, 4, 2.2, h2 * Math.PI, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (isWinter) {
+          ctx.fillStyle = 'rgba(236, 240, 241, 0.35)';
+          ctx.beginPath();
+          ctx.ellipse(px, py, 8, 4, 0, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (isSpring) {
+          ctx.fillStyle = h2 < 0.5 ? '#e91e63' : '#ffeb3b';
+          ctx.beginPath();
+          ctx.arc(px, py, 1.8, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (isSummer) {
+          ctx.strokeStyle = '#27170c';
+          ctx.lineWidth = 1.0;
+          ctx.beginPath();
+          ctx.moveTo(px - 5, py);
+          ctx.lineTo(px + 5, py + 2);
+          ctx.stroke();
+        }
+      }
+    }
+  }
+}
+
+function drawCustomItemGraphic(ctx, id, x, y, size = 26) {
+  ctx.save();
+  ctx.translate(x, y);
+
+  switch (id) {
+    case 'flint': {
+      ctx.fillStyle = '#2d313d';
+      ctx.strokeStyle = '#12141a';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(0, -size * 0.55);
+      ctx.lineTo(size * 0.45, -size * 0.1);
+      ctx.lineTo(size * 0.35, size * 0.48);
+      ctx.lineTo(-size * 0.35, size * 0.48);
+      ctx.lineTo(-size * 0.48, -size * 0.05);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#424859';
+      ctx.beginPath();
+      ctx.moveTo(0, -size * 0.55);
+      ctx.lineTo(size * 0.15, 0);
+      ctx.lineTo(size * 0.35, size * 0.48);
+      ctx.lineTo(0, size * 0.2);
+      ctx.lineTo(-size * 0.35, size * 0.48);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.strokeStyle = '#8fa2c4';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.25, -size * 0.1);
+      ctx.lineTo(0, -size * 0.5);
+      ctx.lineTo(size * 0.1, -size * 0.15);
+      ctx.stroke();
+      break;
+    }
+    case 'twig': {
+      ctx.strokeStyle = '#634327';
+      ctx.lineWidth = 2.4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.45, size * 0.45);
+      ctx.quadraticCurveTo(-size * 0.1, 0, size * 0.4, -size * 0.45);
+      ctx.stroke();
+
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(0, -size * 0.05);
+      ctx.quadraticCurveTo(size * 0.2, -size * 0.1, size * 0.35, size * 0.15);
+      ctx.stroke();
+
+      ctx.fillStyle = '#689f38';
+      ctx.beginPath();
+      ctx.arc(size * 0.4, -size * 0.45, 2.5, 0, Math.PI * 2);
+      ctx.arc(size * 0.35, size * 0.15, 2, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'grass': {
+      const blades = [
+        [-size * 0.3, size * 0.4, -size * 0.4, -size * 0.45, '#d4ac4b'],
+        [-size * 0.1, size * 0.4, -size * 0.15, -size * 0.55, '#f1c40f'],
+        [size * 0.05, size * 0.4, size * 0.1, -size * 0.5, '#e0b84c'],
+        [size * 0.2, size * 0.4, size * 0.35, -size * 0.4, '#c29b38'],
+      ];
+      blades.forEach(([bx, by, tx, ty, col]) => {
+        ctx.strokeStyle = col;
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.quadraticCurveTo((bx + tx) * 0.5 + 2, (by + ty) * 0.5, tx, ty);
+        ctx.stroke();
+      });
+      ctx.fillStyle = '#5d4037';
+      ctx.fillRect(-size * 0.25, size * 0.05, size * 0.5, size * 0.12);
+      break;
+    }
+    case 'log': {
+      ctx.fillStyle = '#4e342e';
+      ctx.strokeStyle = '#271711';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.rect(-size * 0.45, -size * 0.15, size * 0.9, size * 0.5);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#a17852';
+      ctx.beginPath();
+      ctx.ellipse(-size * 0.45, size * 0.1, size * 0.18, size * 0.25, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.strokeStyle = '#704c30';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.ellipse(-size * 0.45, size * 0.1, size * 0.09, size * 0.14, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#321c13';
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.25, -size * 0.12);
+      ctx.lineTo(size * 0.4, -size * 0.12);
+      ctx.moveTo(-size * 0.2, size * 0.25);
+      ctx.lineTo(size * 0.35, size * 0.25);
+      ctx.stroke();
+      break;
+    }
+    case 'rock': {
+      ctx.fillStyle = '#5c646b';
+      ctx.strokeStyle = '#272b30';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.45, size * 0.25);
+      ctx.lineTo(-size * 0.35, -size * 0.3);
+      ctx.lineTo(size * 0.1, -size * 0.45);
+      ctx.lineTo(size * 0.45, -size * 0.15);
+      ctx.lineTo(size * 0.35, size * 0.35);
+      ctx.lineTo(-size * 0.1, size * 0.45);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#7a838c';
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.35, -size * 0.3);
+      ctx.lineTo(size * 0.1, -size * 0.45);
+      ctx.lineTo(size * 0.15, -size * 0.05);
+      ctx.lineTo(-size * 0.1, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#3a3f45';
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.45, size * 0.25);
+      ctx.lineTo(-size * 0.1, 0);
+      ctx.lineTo(size * 0.15, -size * 0.05);
+      ctx.lineTo(size * 0.35, size * 0.35);
+      ctx.lineTo(-size * 0.1, size * 0.45);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case 'gold': {
+      ctx.fillStyle = '#f39c12';
+      ctx.strokeStyle = '#875104';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.4, size * 0.2);
+      ctx.lineTo(-size * 0.2, -size * 0.4);
+      ctx.lineTo(size * 0.35, -size * 0.35);
+      ctx.lineTo(size * 0.48, size * 0.1);
+      ctx.lineTo(size * 0.1, size * 0.45);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffeb3b';
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.2, -size * 0.4);
+      ctx.lineTo(size * 0.35, -size * 0.35);
+      ctx.lineTo(size * 0.15, -size * 0.05);
+      ctx.lineTo(-size * 0.1, 0);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      const sx = size * 0.28, sy = -size * 0.3;
+      ctx.beginPath();
+      ctx.moveTo(sx, sy - 5);
+      ctx.lineTo(sx + 2, sy);
+      ctx.lineTo(sx + 5, sy);
+      ctx.lineTo(sx + 2, sy + 2);
+      ctx.lineTo(sx, sy + 5);
+      ctx.lineTo(sx - 2, sy + 2);
+      ctx.lineTo(sx - 5, sy);
+      ctx.lineTo(sx - 2, sy);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case 'meat': {
+      ctx.fillStyle = '#c0392b';
+      ctx.strokeStyle = '#4a0e0e';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.ellipse(-size * 0.05, 0, size * 0.45, size * 0.32, -Math.PI / 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.strokeStyle = '#fadbd8';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.25, -size * 0.15);
+      ctx.quadraticCurveTo(-size * 0.05, 0, size * 0.15, -size * 0.1);
+      ctx.stroke();
+
+      ctx.fillStyle = '#fdfefe';
+      ctx.strokeStyle = '#7f8c8d';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.arc(size * 0.38, size * 0.22, size * 0.12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      break;
+    }
+    case 'monstermeat': {
+      ctx.fillStyle = '#5b2c6f';
+      ctx.strokeStyle = '#210c2b';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.ellipse(-size * 0.05, 0, size * 0.45, size * 0.32, -Math.PI / 8, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.strokeStyle = '#27ae60';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.28, -size * 0.12);
+      ctx.lineTo(size * 0.05, -size * 0.05);
+      ctx.lineTo(size * 0.2, size * 0.15);
+      ctx.stroke();
+
+      ctx.fillStyle = '#99a3a4';
+      ctx.beginPath();
+      ctx.arc(size * 0.38, size * 0.22, size * 0.12, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'seeds': {
+      const seedPoints = [[-size * 0.2, size * 0.1], [size * 0.15, size * 0.15], [0, -size * 0.2]];
+      seedPoints.forEach(([sx, sy]) => {
+        ctx.fillStyle = '#8d6e63';
+        ctx.strokeStyle = '#3e2723';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.ellipse(sx, sy, size * 0.15, size * 0.22, Math.PI / 6, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      });
+      break;
+    }
+    case 'berry': {
+      ctx.strokeStyle = '#2e7d32';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(0, -size * 0.45);
+      ctx.lineTo(0, -size * 0.1);
+      ctx.stroke();
+
+      const berries = [
+        [-size * 0.18, size * 0.12, size * 0.2],
+        [size * 0.18, size * 0.12, size * 0.2],
+        [0, -size * 0.1, size * 0.18]
+      ];
+      berries.forEach(([bx, by, br]) => {
+        ctx.fillStyle = '#c0392b';
+        ctx.strokeStyle = '#5a110a';
+        ctx.lineWidth = 1.4;
+        ctx.beginPath();
+        ctx.arc(bx, by, br, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#ff8a80';
+        ctx.beginPath();
+        ctx.arc(bx - br * 0.35, by - br * 0.35, br * 0.3, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      break;
+    }
+    case 'carrot': {
+      ctx.fillStyle = '#2ecc71';
+      ctx.beginPath();
+      ctx.moveTo(size * 0.2, -size * 0.2);
+      ctx.lineTo(size * 0.45, -size * 0.45);
+      ctx.lineTo(size * 0.25, -size * 0.4);
+      ctx.lineTo(size * 0.35, -size * 0.2);
+      ctx.fill();
+
+      ctx.fillStyle = '#e67e22';
+      ctx.strokeStyle = '#783802';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.4, size * 0.35);
+      ctx.lineTo(size * 0.2, -size * 0.3);
+      ctx.lineTo(size * 0.32, -size * 0.15);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      break;
+    }
+    case 'flower': {
+      for (let i = 0; i < 5; i++) {
+        const ang = (i * Math.PI * 2) / 5;
+        const px = Math.cos(ang) * (size * 0.25);
+        const py = Math.sin(ang) * (size * 0.25);
+        ctx.fillStyle = '#ecf0f1';
+        ctx.strokeStyle = '#bdc3c7';
+        ctx.lineWidth = 1.2;
+        ctx.beginPath();
+        ctx.arc(px, py, size * 0.16, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+      }
+      ctx.fillStyle = '#f39c12';
+      ctx.beginPath();
+      ctx.arc(0, 0, size * 0.14, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'axe': {
+      ctx.strokeStyle = '#6d4c41';
+      ctx.lineWidth = 3.2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.35, size * 0.45);
+      ctx.quadraticCurveTo(-size * 0.1, 0, size * 0.25, -size * 0.35);
+      ctx.stroke();
+
+      ctx.fillStyle = '#37474f';
+      ctx.strokeStyle = '#102027';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(size * 0.1, -size * 0.45);
+      ctx.lineTo(size * 0.45, -size * 0.3);
+      ctx.lineTo(size * 0.25, -size * 0.1);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.strokeStyle = '#cca574';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(size * 0.15, -size * 0.38);
+      ctx.lineTo(size * 0.25, -size * 0.2);
+      ctx.stroke();
+      break;
+    }
+    case 'pickaxe': {
+      ctx.strokeStyle = '#6d4c41';
+      ctx.lineWidth = 3.0;
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.35, size * 0.4);
+      ctx.lineTo(size * 0.2, -size * 0.25);
+      ctx.stroke();
+
+      ctx.fillStyle = '#455a64';
+      ctx.strokeStyle = '#1c313a';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(size * 0.45, -size * 0.45);
+      ctx.quadraticCurveTo(size * 0.2, -size * 0.2, -size * 0.05, -size * 0.4);
+      ctx.quadraticCurveTo(size * 0.2, -size * 0.32, size * 0.45, -size * 0.45);
+      ctx.fill();
+      ctx.stroke();
+      break;
+    }
+    case 'shovel': {
+      ctx.strokeStyle = '#6d4c41';
+      ctx.lineWidth = 3.0;
+      ctx.beginPath();
+      ctx.moveTo(size * 0.35, -size * 0.45);
+      ctx.lineTo(-size * 0.15, size * 0.15);
+      ctx.stroke();
+
+      ctx.fillStyle = '#546e7a';
+      ctx.strokeStyle = '#263238';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.05, size * 0.05);
+      ctx.lineTo(-size * 0.4, size * 0.3);
+      ctx.lineTo(-size * 0.3, size * 0.48);
+      ctx.lineTo(-size * 0.2, size * 0.2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      break;
+    }
+    case 'spear': {
+      ctx.strokeStyle = '#5d4037';
+      ctx.lineWidth = 2.4;
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.45, size * 0.45);
+      ctx.lineTo(size * 0.35, -size * 0.35);
+      ctx.stroke();
+
+      ctx.fillStyle = '#37474f';
+      ctx.strokeStyle = '#212121';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(size * 0.2, -size * 0.2);
+      ctx.lineTo(size * 0.48, -size * 0.48);
+      ctx.lineTo(size * 0.32, -size * 0.1);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      break;
+    }
+    case 'torch': {
+      ctx.strokeStyle = '#4e342e';
+      ctx.lineWidth = 3.0;
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.35, size * 0.4);
+      ctx.lineTo(size * 0.15, -size * 0.15);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ff5722';
+      ctx.beginPath();
+      ctx.arc(size * 0.22, -size * 0.25, size * 0.22, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffeb3b';
+      ctx.beginPath();
+      ctx.arc(size * 0.22, -size * 0.25, size * 0.12, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'charcoal': {
+      ctx.fillStyle = '#1c1c1c';
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.35, size * 0.2);
+      ctx.lineTo(-size * 0.2, -size * 0.35);
+      ctx.lineTo(size * 0.25, -size * 0.3);
+      ctx.lineTo(size * 0.35, size * 0.25);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.strokeStyle = '#e64a19';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.1, -size * 0.1);
+      ctx.lineTo(size * 0.15, 0);
+      ctx.stroke();
+      break;
+    }
+    case 'hound_tooth': {
+      ctx.fillStyle = '#fdfefe';
+      ctx.strokeStyle = '#7f8c8d';
+      ctx.lineWidth = 1.4;
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.25, -size * 0.25);
+      ctx.quadraticCurveTo(0, size * 0.2, size * 0.35, size * 0.4);
+      ctx.quadraticCurveTo(size * 0.1, -size * 0.1, -size * 0.1, -size * 0.35);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#c0392b';
+      ctx.beginPath();
+      ctx.arc(-size * 0.18, -size * 0.3, size * 0.12, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'silk': {
+      ctx.fillStyle = '#f5f5f5';
+      ctx.strokeStyle = '#9e9e9e';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, size * 0.38, size * 0.24, Math.PI / 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.strokeStyle = '#e0e0e0';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.2, size * 0.1);
+      ctx.lineTo(size * 0.2, -size * 0.1);
+      ctx.stroke();
+      break;
+    }
+    case 'rope': {
+      ctx.strokeStyle = '#cca574';
+      ctx.lineWidth = 3.2;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, size * 0.35, size * 0.28, 0, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.strokeStyle = '#6d4c2a';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      break;
+    }
+    case 'boards': {
+      ctx.fillStyle = '#8d6e63';
+      ctx.strokeStyle = '#3e2723';
+      ctx.lineWidth = 1.6;
+      ctx.fillRect(-size * 0.45, -size * 0.2, size * 0.9, size * 0.18);
+      ctx.strokeRect(-size * 0.45, -size * 0.2, size * 0.9, size * 0.18);
+      ctx.fillRect(-size * 0.4, size * 0.05, size * 0.85, size * 0.18);
+      ctx.strokeRect(-size * 0.4, size * 0.05, size * 0.85, size * 0.18);
+      break;
+    }
+    case 'cut_stone': {
+      ctx.fillStyle = '#78909c';
+      ctx.strokeStyle = '#263238';
+      ctx.lineWidth = 1.6;
+      ctx.fillRect(-size * 0.42, -size * 0.25, size * 0.84, size * 0.5);
+      ctx.strokeRect(-size * 0.42, -size * 0.25, size * 0.84, size * 0.5);
+      ctx.strokeStyle = '#455a64';
+      ctx.beginPath();
+      ctx.moveTo(0, -size * 0.25);
+      ctx.lineTo(0, size * 0.25);
+      ctx.stroke();
+      break;
+    }
+    case 'nightmare_fuel': {
+      ctx.fillStyle = '#4a148c';
+      ctx.beginPath();
+      ctx.ellipse(0, 0, size * 0.4, size * 0.35, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#7b1fa2';
+      ctx.beginPath();
+      ctx.ellipse(size * 0.05, -size * 0.1, size * 0.22, size * 0.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ea80fc';
+      ctx.beginPath();
+      ctx.arc(-size * 0.08, size * 0.05, size * 0.08, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'red_gem':
+    case 'blue_gem':
+    case 'purple_gem': {
+      const gemColors = {
+        red_gem: { base: '#c0392b', top: '#ff5252', outline: '#4a0e0e' },
+        blue_gem: { base: '#1976d2', top: '#40c4ff', outline: '#0d47a1' },
+        purple_gem: { base: '#7b1fa2', top: '#e040fb', outline: '#4a148c' }
+      }[id];
+      ctx.fillStyle = gemColors.base;
+      ctx.strokeStyle = gemColors.outline;
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.25, -size * 0.45);
+      ctx.lineTo(size * 0.25, -size * 0.45);
+      ctx.lineTo(size * 0.45, -size * 0.1);
+      ctx.lineTo(0, size * 0.5);
+      ctx.lineTo(-size * 0.45, -size * 0.1);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = gemColors.top;
+      ctx.beginPath();
+      ctx.moveTo(-size * 0.18, -size * 0.4);
+      ctx.lineTo(size * 0.18, -size * 0.4);
+      ctx.lineTo(size * 0.28, -size * 0.15);
+      ctx.lineTo(-size * 0.28, -size * 0.15);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(size * 0.15, -size * 0.25, 2, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'eyebone': {
+      ctx.strokeStyle = '#d7ccc8';
+      ctx.lineWidth = 3.0;
+      ctx.beginPath();
+      ctx.moveTo(0, size * 0.45);
+      ctx.lineTo(0, -size * 0.1);
+      ctx.stroke();
+
+      ctx.fillStyle = '#fff8e1';
+      ctx.strokeStyle = '#4e342e';
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(0, -size * 0.15, size * 0.32, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.fillStyle = '#bf360c';
+      ctx.beginPath();
+      ctx.arc(0, -size * 0.15, size * 0.16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.arc(0, -size * 0.15, size * 0.08, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    default: {
+      ctx.fillStyle = 'rgba(28, 20, 15, 0.92)';
+      ctx.strokeStyle = '#947146';
+      ctx.lineWidth = 1.8;
+      ctx.beginPath();
+      ctx.arc(0, 0, size * 0.46, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      ctx.strokeStyle = 'rgba(243, 156, 18, 0.4)';
+      ctx.lineWidth = 1.0;
+      ctx.beginPath();
+      ctx.arc(0, 0, size * 0.38, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.font = `${Math.round(size * 0.58)}px sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(ITEMS[id]?.icon || '📦', 0, 1);
+      break;
+    }
+  }
+
+  ctx.restore();
+}
+
+function drawItemDrop(ent) {
+  const p = state.player;
+  const dToPlayer = dist(p.x, p.y, ent.x, ent.y);
+
+  // 1. Soft contact shadow
+  ctx.save();
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
+  ctx.beginPath();
+  ctx.ellipse(0, 8, 14, 6, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // 2. Gentle bobbing animation
+  const bob = Math.sin((Date.now() * 0.0035) + (ent.x * 0.1)) * 3;
+
+  // 3. Procedural vector item
+  drawCustomItemGraphic(ctx, ent.itemId, 0, bob, 26);
+
+  // 4. Stack count badge (if > 1)
+  if (ent.count > 1) {
+    ctx.save();
+    ctx.fillStyle = 'rgba(15, 10, 8, 0.85)';
+    ctx.strokeStyle = '#f39c12';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.arc(10, bob + 8, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#ffeedb';
+    ctx.font = 'bold 9px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`${ent.count}`, 10, bob + 8);
+    ctx.restore();
+  }
+
+  // 5. Interactive approaching tooltip
+  if (dToPlayer < 75) {
+    ctx.save();
+    const itemName = ITEMS[ent.itemId]?.name || ent.itemId;
+    ctx.font = 'bold 11px sans-serif';
+    const textW = ctx.measureText(itemName).width + 12;
+
+    ctx.fillStyle = 'rgba(15, 10, 8, 0.85)';
+    ctx.strokeStyle = '#cca574';
+    ctx.lineWidth = 1;
+    const badgeY = bob - 22;
+
+    ctx.beginPath();
+    ctx.roundRect(-textW / 2, badgeY - 8, textW, 16, 4);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#fff4e0';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(itemName, 0, badgeY);
+    ctx.restore();
+  }
+}
+
 // --- 11. Canvas Rendering (Tim Burton Sketch Style) ---
 function render() {
   if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
@@ -3699,6 +4632,9 @@ function render() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   ctx.translate(-state.camera.x, -state.camera.y);
+
+  // Draw ground terrain details (pebbles, grass sprouts, seasonal foliage)
+  drawTerrainDetails();
 
   // Draw entities sorted by Y
   const renderList = [...state.entities, { type: 'player', y: state.player.y }];
@@ -4227,10 +5163,7 @@ function drawEntity(ent) {
     ctx.fillStyle = '#ffd700';
     ctx.fillRect(-3, -6, 6, 6);
   } else if (ent.type === 'drop') {
-    ctx.font = '18px serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(ITEMS[ent.itemId]?.icon || '📦', 0, 0);
+    drawItemDrop(ent);
   } else if (ent.type === 'campfire' || ent.type === 'firepit') {
     ctx.fillStyle = '#555';
     ctx.beginPath();
@@ -4775,11 +5708,71 @@ function setupInputs() {
   });
   window.addEventListener('keyup', (e) => { state.keys[e.code] = false; });
 
-  document.getElementById('btn-action-interact').addEventListener('click', (e) => {
+  // Context Action Buttons with Hold-to-Repeat for smooth mobile gathering & combat
+  const btnInteract = document.getElementById('btn-action-interact');
+  const btnAttack = document.getElementById('btn-action-attack');
+
+  let interactInterval = null;
+  let attackInterval = null;
+
+  const startInteract = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    audio.init();
+    interactNearest();
+    if (!interactInterval) {
+      interactInterval = setInterval(() => {
+        interactNearest();
+      }, 250);
+    }
+  };
+
+  const stopInteract = (e) => {
+    if (e) e.stopPropagation();
+    if (interactInterval) {
+      clearInterval(interactInterval);
+      interactInterval = null;
+    }
+  };
+
+  btnInteract.addEventListener('pointerdown', startInteract);
+  btnInteract.addEventListener('pointerup', stopInteract);
+  btnInteract.addEventListener('pointercancel', stopInteract);
+  btnInteract.addEventListener('pointerleave', stopInteract);
+  btnInteract.addEventListener('click', (e) => {
     e.stopPropagation();
     interactNearest();
   });
-  document.getElementById('btn-action-attack').addEventListener('click', (e) => {
+
+  const startAttack = (e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    audio.init();
+    attackNearest();
+    if (!attackInterval) {
+      attackInterval = setInterval(() => {
+        attackNearest();
+      }, 280);
+    }
+  };
+
+  const stopAttack = (e) => {
+    if (e) e.stopPropagation();
+    if (attackInterval) {
+      clearInterval(attackInterval);
+      attackInterval = null;
+    }
+  };
+
+  btnAttack.addEventListener('pointerdown', startAttack);
+  btnAttack.addEventListener('pointerup', stopAttack);
+  btnAttack.addEventListener('pointercancel', stopAttack);
+  btnAttack.addEventListener('pointerleave', stopAttack);
+  btnAttack.addEventListener('click', (e) => {
     e.stopPropagation();
     attackNearest();
   });
@@ -4850,23 +5843,37 @@ function setupInputs() {
     document.getElementById('map-modal').classList.add('hidden');
   };
 
-  // Crafting drawer toggle
-  document.getElementById('crafting-tab-btn').onclick = () => {
+  // Crafting drawer toggle with mobile touch optimization
+  const openCraftingDrawer = (e) => {
+    if (e) e.stopPropagation();
     audio.init();
     document.getElementById('crafting-drawer').classList.remove('hidden');
     checkPrototypingTier();
     updateRecipesUI();
   };
-  document.getElementById('close-crafting-btn').onclick = () => {
+  const tabBtn = document.getElementById('crafting-tab-btn');
+  tabBtn.addEventListener('click', openCraftingDrawer);
+  tabBtn.addEventListener('pointerdown', openCraftingDrawer);
+
+  const closeCraftingDrawer = (e) => {
+    if (e) e.stopPropagation();
     document.getElementById('crafting-drawer').classList.add('hidden');
   };
+  const closeBtn = document.getElementById('close-crafting-btn');
+  closeBtn.addEventListener('click', closeCraftingDrawer);
+  closeBtn.addEventListener('pointerdown', closeCraftingDrawer);
 
+  // Category Tab Switching with instant mobile touch response
   document.querySelectorAll('.cat-btn').forEach(btn => {
-    btn.onclick = () => {
+    const handleCatSwitch = (e) => {
+      if (e) e.stopPropagation();
+      audio.init();
       document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       updateRecipesUI();
     };
+    btn.addEventListener('click', handleCatSwitch);
+    btn.addEventListener('pointerdown', handleCatSwitch);
   });
 
   document.getElementById('btn-play').onclick = () => {

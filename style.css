@@ -1084,6 +1084,9 @@ body, html {
   justify-content: center;
   z-index: 100;
   padding: 16px;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
 }
 
 .start-box, .game-over-box {

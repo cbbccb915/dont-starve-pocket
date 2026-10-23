@@ -5660,6 +5660,8 @@ function triggerGameOver() {
 
 function restartWorld() {
   document.getElementById('game-over-screen').classList.add('hidden');
+  const craftDrawer = document.getElementById('crafting-drawer');
+  if (craftDrawer) craftDrawer.classList.add('hidden');
   state.day = 1;
   state.timeInDay = 0;
   state.season = 'autumn';
@@ -5876,17 +5878,25 @@ function setupInputs() {
     btn.addEventListener('pointerdown', handleCatSwitch);
   });
 
-  document.getElementById('btn-play').onclick = () => {
+  const handlePlay = (e) => {
+    if (e) e.stopPropagation();
     audio.init();
     document.getElementById('start-screen').classList.add('hidden');
     state.started = true;
     showToast('进入永恒荒野...努力活过每一个季节与黑夜！');
   };
+  const btnPlay = document.getElementById('btn-play');
+  btnPlay.addEventListener('click', handlePlay);
+  btnPlay.addEventListener('pointerdown', handlePlay);
 
-  document.getElementById('btn-restart').onclick = () => {
+  const handleRestart = (e) => {
+    if (e) e.stopPropagation();
     audio.init();
     restartWorld();
   };
+  const btnRestart = document.getElementById('btn-restart');
+  btnRestart.addEventListener('click', handleRestart);
+  btnRestart.addEventListener('pointerdown', handleRestart);
 
   // Character selection cards
   document.querySelectorAll('.char-card').forEach(card => {

@@ -2888,7 +2888,13 @@ function gameLoop(now) {
 
   const isModalOpen = !document.getElementById('save-load-modal')?.classList.contains('hidden') ||
                       !document.getElementById('diary-modal')?.classList.contains('hidden') ||
-                      !document.getElementById('map-modal')?.classList.contains('hidden');
+                      !document.getElementById('map-modal')?.classList.contains('hidden') ||
+                      !document.getElementById('crafting-drawer')?.classList.contains('hidden') ||
+                      !document.getElementById('crockpot-modal')?.classList.contains('hidden') ||
+                      !document.getElementById('chest-modal')?.classList.contains('hidden') ||
+                      !document.getElementById('chester-modal')?.classList.contains('hidden') ||
+                      !document.getElementById('teleportato-modal')?.classList.contains('hidden') ||
+                      !document.getElementById('item-popover')?.classList.contains('hidden');
 
   if (state.started && !state.gameOver && !isModalOpen) {
     update(dt);

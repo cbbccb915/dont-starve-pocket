@@ -1315,6 +1315,29 @@ function deployStructure(type, x, y, rotation) {
   } else if (type === 'teleportato_wooden') {
     state.entities.push({ type: 'teleportato_base', x, y, radius: 36, assembled: false });
     showToast('🌀 安放了木质基座！靠近可组装麦斯威尔跳世界机！');
+  } else if (type === 'houndius_shootius') {
+    state.entities.push({
+      type: 'houndius_shootius',
+      x, y, radius: 28, rotation: rot,
+      hp: 1200, maxHp: 1200,
+      shootCooldown: 0,
+      laserTimer: 0,
+      target: null
+    });
+    showToast('🏰 构筑了【远古眼球激光炮塔】！基地守卫已就绪！');
+  } else if (type === 'scaled_furnace') {
+    state.entities.push({
+      type: 'scaled_furnace',
+      x, y, radius: 30, rotation: rot,
+      isPermanent: true
+    });
+    showToast('🔥 建造了【龙鳞火炉】！永恒光源与舒适温度已激活！');
+  } else if (type === 'spider_den') {
+    state.entities.push({
+      type: 'spider_den',
+      x, y, radius: 26, level: 1, spawnTimer: 8, rotation: rot
+    });
+    showToast('🕸️ 成功移植种植了蜘蛛巢穴！');
   }
 }
 
@@ -3637,21 +3660,25 @@ function attackNearest() {
   audio.init();
   const p = state.player;
 
+  // 1. Attack Cooldown Guard (cannot spam faster than animation cooldown)
+  if (p.attackCooldown > 0) return;
+
   const handItem = p.equipped.hand ? ITEMS[p.equipped.hand.id] : null;
   const isRangedStaff = handItem?.isStaff;
   const attackRange = isRangedStaff ? 260 : 85;
 
-  let nearest = null;
-  let minDist = attackRange;
-
   const hostileTypes = [
-    'spider', 'spider_warrior', 'hound', 'ice_hound', 'fire_hound', 'hound_mound', 'treeguard',
-    'deerclops', 'bearger', 'moosegoose', 'dragonfly',
+    'spider', 'spider_warrior', 'spider_queen', 'hound', 'ice_hound', 'fire_hound', 'hound_mound',
+    'varg', 'treeguard', 'ancient_guardian', 'deerclops', 'bearger', 'moosegoose', 'dragonfly',
     'shadow_creature', 'crawling_horror', 'terrorbeak',
     'rabbit', 'batilisk', 'slurtle', 'clockwork_knight', 'clockwork_bishop', 'clockwork_rook',
     'beefalo', 'pig', 'tallbird', 'tentacle', 'frog', 'ghost',
     'butterfly', 'gobbler', 'bee', 'killer_bee', 'bird', 'catcoon', 'glommer', 'koalefant', 'merm'
   ];
+
+  // 2. Candidate Target Acquisition
+  let nearest = null;
+  let minDist = attackRange;
 
   for (const ent of state.entities) {
     if (hostileTypes.includes(ent.type)) {
@@ -3663,12 +3690,51 @@ function attackNearest() {
     }
   }
 
-  if (!nearest) {
-    showToast('前方没有攻击目标');
-    return;
+  // 3. Authentic Don't Starve Attack Commitment:
+  // Wilson halts movement during weapon swing (cannot run and attack simultaneously!)
+  p.attackCooldown = 0.42;
+  p.attackLockTimer = 0.28;
+  p.vx = 0;
+  p.vy = 0;
+  p.walking = false;
+  p.actionTick = 16;
+
+  // 4. Direction & Facing Lock
+  if (nearest) {
+    p.facingAngle = Math.atan2(nearest.y - p.y, nearest.x - p.x);
+    p.facing = Math.cos(p.facingAngle) >= 0 ? 'right' : 'left';
   }
 
-  p.actionTick = 12;
+  // 5. Frontal Cone Check (132° swing arc)
+  let canHitTarget = false;
+  if (nearest) {
+    const angleToTarget = Math.atan2(nearest.y - p.y, nearest.x - p.x);
+    let diff = Math.abs(angleToTarget - (p.facingAngle || 0));
+    while (diff > Math.PI) diff = Math.abs(diff - Math.PI * 2);
+    canHitTarget = diff <= 1.15; // ~66° half-cone
+  }
+
+  // 6. Dynamic Crescent Weapon Slash Effect
+  let slashColor = '#ffffff';
+  if (handItem?.id === 'darksword') slashColor = '#9c27b0';
+  else if (handItem?.id === 'bat_bat') slashColor = '#e91e63';
+  else if (handItem?.isStaff === 'fire') slashColor = '#ff5722';
+  else if (handItem?.isStaff === 'ice') slashColor = '#00e5ff';
+  else if (handItem?.id === 'spear' || handItem?.id === 'tentacle_spike') slashColor = '#eceff1';
+
+  p.slashEffect = {
+    angle: p.facingAngle || 0,
+    timer: 0.24,
+    maxTimer: 0.24,
+    color: slashColor,
+    reach: attackRange
+  };
+
+  // 7. Whiff / Miss if no target in range or angle
+  if (!nearest || !canHitTarget) {
+    audio.playHit();
+    return;
+  }
 
   // Pan Flute check
   if (handItem && handItem.id === 'pan_flute') {
@@ -3721,7 +3787,6 @@ function attackNearest() {
       if (handItem.sanityDrainOnHit) {
         p.sanity = Math.max(0, p.sanity - handItem.sanityDrainOnHit);
       }
-      // Bat bat lifesteal
       if (handItem.lifesteal) {
         p.hp = Math.min(p.maxHp, p.hp + handItem.lifesteal);
         showToast(`🦇 蝙蝠棒嗜血吸收 +${handItem.lifesteal} 生命！`);
@@ -3779,111 +3844,116 @@ function attackNearest() {
 
     // Shadow Horrors teleport on hit!
     if (nearest.type === 'crawling_horror' || nearest.type === 'terrorbeak') {
-      nearest.x += (Math.random() - 0.5) * 180;
-      nearest.y += (Math.random() - 0.5) * 180;
+      const escapeAngle = Math.random() * Math.PI * 2;
+      const escapeDist = 120 + Math.random() * 80;
+      nearest.x = Math.max(80, Math.min(state.worldWidth - 80, nearest.x + Math.cos(escapeAngle) * escapeDist));
+      nearest.y = Math.max(80, Math.min(state.worldHeight - 80, nearest.y + Math.sin(escapeAngle) * escapeDist));
+      createHitParticles(nearest.x, nearest.y, '#311b92');
+      createHitParticles(nearest.x, nearest.y, '#7b1fa2');
     }
-  }
 
-  // Friendly pigs help attack
-  for (const pig of state.entities) {
-    if (pig.type === 'pig' && pig.isFollower) {
-      if (dist(pig.x, pig.y, nearest.x, nearest.y) < 300) {
-        nearest.hp -= 20;
-        showToast('猪人伙伴挥拳痛击了敌人！');
+    // Spider Army Support (from Spiderhat)
+    if (p.equipped.head && p.equipped.head.id === 'spiderhat') {
+      for (const sp of state.entities) {
+        if ((sp.type === 'spider' || sp.type === 'spider_warrior') && dist(sp.x, sp.y, p.x, p.y) < 320) {
+          sp.target = nearest;
+        }
       }
     }
   }
 
+  // Death and Drops
   if (nearest.hp <= 0) {
-    if (state.diary) state.diary.monstersKilled++;
+    audio.playCraft();
+    createHitParticles(nearest.x, nearest.y, '#ff0055');
 
-    if (nearest.type === 'rabbit') {
-      if (Math.random() < 0.6) {
-        dropWorldItem('rabbit_item', nearest.x, nearest.y, 1);
-        showToast('活捉了一只活野兔！');
-      } else {
-        dropWorldItem('morsel', nearest.x, nearest.y, 1);
-        showToast('猎杀野兔，获得鲜美生小肉！');
-      }
-    } else if (nearest.type === 'tallbird') {
-      dropWorldItem('meat', nearest.x, nearest.y, 2);
-      showToast('狩猎了凶猛的高脚鸟！获得 2 块生大肉！');
-    } else if (nearest.type === 'tentacle') {
-      if (Math.random() < 0.5) dropWorldItem('tentacle_spike', nearest.x, nearest.y, 1);
-      if (Math.random() < 0.25) dropWorldItem('tentacle_spots', nearest.x + 10, nearest.y, 1);
-      dropWorldItem('monster_meat', nearest.x - 10, nearest.y, 2);
-      showToast('斩断了沼泽潜伏触手！获得怪物肉与触手战利品！');
-    } else if (nearest.type === 'frog') {
-      dropWorldItem('frog_legs', nearest.x, nearest.y, 1);
-      showToast('捕获了池塘青蛙，获得鲜嫩青蛙腿！');
-    } else if (nearest.type === 'ghost') {
-      dropWorldItem('nightmare_fuel', nearest.x, nearest.y, 1);
-      p.sanity = Math.min(p.maxHp, p.sanity + 15);
-      showToast('超度了荒野幽魂！获得噩梦燃料！');
-    } else if (nearest.type === 'beefalo') {
-      dropWorldItem('meat', nearest.x, nearest.y, 3);
-      dropWorldItem('beefalo_wool', nearest.x + 12, nearest.y, 2);
-      if (Math.random() < 0.33) dropWorldItem('beefalo_horn', nearest.x - 12, nearest.y, 1);
-      showToast('猎杀了皮弗娄牛！获得大量生大肉与厚实牛毛！');
-    } else if (nearest.type === 'pig') {
-      if (nearest.isWerepig) {
-        dropWorldItem('meat', nearest.x, nearest.y, 2);
-        dropWorldItem('pig_skin', nearest.x + 10, nearest.y, 1);
-        showToast('诛杀了狂暴疯猪！获得了丰厚大肉与猪皮！');
-      } else {
-        dropWorldItem('meat', nearest.x, nearest.y, 1);
-        if (Math.random() < 0.5) dropWorldItem('pig_skin', nearest.x + 10, nearest.y, 1);
-        showToast('击败了猪人！获得生肉！');
-      }
+    if (nearest.type === 'treeguard') {
+      dropWorldItem('living_log', nearest.x, nearest.y, 5);
+      dropWorldItem('meat', nearest.x + 15, nearest.y, 2);
+      showToast('🌲 诛灭了古老的【树人守卫】！获得了珍稀活木与大肉！');
+    } else if (nearest.type === 'spider_queen') {
+      dropWorldItem('spiderhat', nearest.x, nearest.y, 1);
+      dropWorldItem('spidereggsack', nearest.x + 15, nearest.y, 1);
+      dropWorldItem('silk', nearest.x - 15, nearest.y, 4);
+      dropWorldItem('gland', nearest.x + 10, nearest.y, 2);
+      dropWorldItem('monster_meat', nearest.x, nearest.y + 15, 4);
+      showToast('👑 斩杀了深渊【蜘蛛女王】！荣获蜘蛛王冠、蜘蛛卵与丰厚蛛丝！');
+    } else if (nearest.type === 'varg') {
+      dropWorldItem('monster_meat', nearest.x, nearest.y, 6);
+      dropWorldItem('hound_tooth', nearest.x + 15, nearest.y, 4);
+      dropWorldItem('red_gem', nearest.x - 15, nearest.y, 1);
+      dropWorldItem('blue_gem', nearest.x, nearest.y - 15, 1);
+      dropWorldItem('purple_gem', nearest.x + 20, nearest.y, 1);
+      showToast('🐺 击毙了恶魔荒原狼领袖【座狼】！爆出璀璨宝石与凶齿！');
+    } else if (nearest.type === 'ancient_guardian') {
+      dropWorldItem('guardian_horn', nearest.x, nearest.y, 1);
+      dropWorldItem('thulecite', nearest.x + 20, nearest.y, 4);
+      dropWorldItem('purple_gem', nearest.x - 15, nearest.y, 2);
+      dropWorldItem('meat', nearest.x, nearest.y + 15, 4);
+      showToast('🦏 击溃了远古迷宫【远古犀牛守护者】！获得太古角杯与铥矿！');
     } else if (nearest.type === 'spider') {
       dropWorldItem('silk', nearest.x, nearest.y, 1);
-      if (Math.random() < 0.5) dropWorldItem('gland', nearest.x + 10, nearest.y, 1);
-      if (Math.random() < 0.3) dropWorldItem('monster_meat', nearest.x - 10, nearest.y, 1);
-      showToast('消灭了蜘蛛！');
-    } else if (nearest.type === 'hound') {
+      dropWorldItem('gland', nearest.x + 10, nearest.y, 1);
+      dropWorldItem('monster_meat', nearest.x - 10, nearest.y, 1);
+      showToast('消灭了蜘蛛！获得蛛丝与蜘蛛腺体！');
+    } else if (nearest.type === 'hound' || nearest.type === 'ice_hound' || nearest.type === 'fire_hound') {
       dropWorldItem('hound_tooth', nearest.x, nearest.y, 1);
       dropWorldItem('monster_meat', nearest.x + 10, nearest.y, 1);
-      showToast('斩杀了来袭的恶犬！');
-    } else if (nearest.type === 'ice_hound') {
-      dropWorldItem('blue_gem', nearest.x, nearest.y, 1);
-      dropWorldItem('hound_tooth', nearest.x + 10, nearest.y, 1);
-      showToast('斩杀了冰霜猎犬，获得珍稀蓝宝石！');
-    } else if (nearest.type === 'fire_hound') {
-      dropWorldItem('red_gem', nearest.x, nearest.y, 1);
-      dropWorldItem('hound_tooth', nearest.x + 10, nearest.y, 1);
-      showToast('消灭了炽热火犬，获得红宝石！');
-    } else if (nearest.type === 'treeguard') {
-      dropWorldItem('living_log', nearest.x, nearest.y, 4);
-      dropWorldItem('log', nearest.x + 10, nearest.y, 8);
-      dropWorldItem('meat', nearest.x - 10, nearest.y, 2);
-      showToast('击败了古老树人守卫！荣获魔法建材【活木】！');
+      if (nearest.type === 'ice_hound') dropWorldItem('blue_gem', nearest.x - 10, nearest.y, 1);
+      if (nearest.type === 'fire_hound') dropWorldItem('red_gem', nearest.x - 10, nearest.y, 1);
+      showToast('击毙了荒野恶犬！收获犬牙与战利品！');
+    } else if (nearest.type === 'pig') {
+      dropWorldItem('meat', nearest.x, nearest.y, 1);
+      dropWorldItem('pigskin', nearest.x + 10, nearest.y, 1);
+      showToast('诛杀了猪人，获得大肉与坚韧猪皮！');
+    } else if (nearest.type === 'beefalo') {
+      dropWorldItem('meat', nearest.x, nearest.y, 4);
+      dropWorldItem('beefalo_wool', nearest.x + 15, nearest.y, 3);
+      dropWorldItem('horn', nearest.x - 15, nearest.y, 1);
+      showToast('猎杀了皮弗娄牛！获得牛角与大量牛肉牛毛！');
+    } else if (nearest.type === 'tallbird') {
+      dropWorldItem('meat', nearest.x, nearest.y, 2);
+      showToast('击毙了高脚鸟！获得鲜美大肉！');
+    } else if (nearest.type === 'tentacle') {
+      dropWorldItem('tentacle_spots', nearest.x, nearest.y, 1);
+      if (Math.random() < 0.5) dropWorldItem('tentacle_spike', nearest.x + 10, nearest.y, 1);
+      showToast('斩断了沼泽触手！掉落触手尖刺与皮斑！');
+    } else if (nearest.type === 'frog') {
+      dropWorldItem('frog_legs', nearest.x, nearest.y, 1);
+      showToast('消灭了池塘青蛙！获得鲜嫩蛙腿！');
+    } else if (nearest.type === 'ghost') {
+      dropWorldItem('nightmare_fuel', nearest.x, nearest.y, 1);
+      showToast('净化了墓地幽灵！获得噩梦燃料！');
     } else if (nearest.type === 'deerclops') {
       dropWorldItem('deerclops_eye', nearest.x, nearest.y, 1);
       dropWorldItem('meat', nearest.x + 20, nearest.y, 8);
       if (state.diary) {
         state.diary.bossesDefeated++;
         state.diary.milestones.slay_deerclops = true;
-        state.diary.chapters.ch2 = true;
+        state.diary.chapters.ch4 = true;
         if (state.diary.bossesDefeated >= 4) state.diary.milestones.four_seasons = true;
       }
-      showToast('★ 战胜了冬季天灾【独眼巨鹿】！荣获巨鹿眼球！');
+      showToast('★ 诛灭了冬季霸主【独眼巨鹿】！荣获无价巨鹿眼球！');
     } else if (nearest.type === 'bearger') {
       dropWorldItem('bearger_fur', nearest.x, nearest.y, 2);
       dropWorldItem('meat', nearest.x + 20, nearest.y, 8);
       if (state.diary) {
         state.diary.bossesDefeated++;
         state.diary.milestones.slay_bearger = true;
+        state.diary.chapters.ch4 = true;
         if (state.diary.bossesDefeated >= 4) state.diary.milestones.four_seasons = true;
       }
-      showToast('★ 讨伐了秋季巨兽【熊獾】！获得厚皮毛与巨量大肉！');
+      showToast('★ 诛灭了秋季霸主【熊獾】！荣获厚熊皮与大量大肉！');
     } else if (nearest.type === 'moosegoose') {
-      dropWorldItem('meat', nearest.x, nearest.y, 6);
-      dropWorldItem('morsel', nearest.x + 15, nearest.y, 4);
+      dropWorldItem('down_feather', nearest.x, nearest.y, 4);
+      dropWorldItem('meat', nearest.x, nearest.y + 10, 6);
+      dropWorldItem('morsel', nearest.x + 15, nearest.y, 2);
       if (state.diary) {
         state.diary.bossesDefeated++;
+        state.diary.chapters.ch4 = true;
         if (state.diary.bossesDefeated >= 4) state.diary.milestones.four_seasons = true;
       }
-      showToast('★ 击落了春季狂暴【鹿角鸭】！');
+      showToast('★ 诛灭了春季霸主【驼鹿鹅】！荣获鸭羽绒与丰富肉食！');
     } else if (nearest.type === 'dragonfly') {
       dropWorldItem('dragon_scales', nearest.x, nearest.y, 2);
       dropWorldItem('meat', nearest.x + 20, nearest.y, 8);
@@ -4387,12 +4457,26 @@ function update(dt) {
     if (state.keys['KeyD'] || state.keys['ArrowRight']) mx += 1;
   }
 
-  if (mx !== 0 || my !== 0) {
+  // Authentic Attack Commitment: Lock movement during weapon swing
+  if (p.attackLockTimer > 0) {
+    p.attackLockTimer -= dt;
+    p.vx = 0;
+    p.vy = 0;
+    p.walking = false;
+  }
+  if (p.attackCooldown > 0) p.attackCooldown -= dt;
+  if (p.slashEffect && p.slashEffect.timer > 0) {
+    p.slashEffect.timer -= dt;
+    if (p.slashEffect.timer <= 0) p.slashEffect = null;
+  }
+
+  if ((mx !== 0 || my !== 0) && p.attackLockTimer <= 0) {
     const len = Math.hypot(mx, my);
     p.vx = (mx / len) * p.speed;
     p.vy = (my / len) * p.speed;
     p.walking = true;
     p.animTick += dt * 8;
+    p.facingAngle = Math.atan2(my, mx);
 
     if (Math.abs(mx) > Math.abs(my)) p.facing = mx > 0 ? 'right' : 'left';
     else p.facing = my > 0 ? 'down' : 'up';
@@ -4729,64 +4813,129 @@ function spawnHoundWave() {
 function updateEntities(dt, isDark) {
   const p = state.player;
 
-  for (const ent of state.entities) {
-    // 1. Spiders
-    if (ent.type === 'spider') {
-      const d = dist(ent.x, ent.y, p.x, p.y);
-      if (d < 250) {
-        const angle = Math.atan2(p.y - ent.y, p.x - ent.x);
-        ent.x += Math.cos(angle) * 80 * dt;
-        ent.y += Math.sin(angle) * 80 * dt;
+  // Active Spiderhat Pacification & Guard Logic
+  const hasSpiderhat = p.equipped.head && p.equipped.head.id === 'spiderhat';
 
-        if (d < 30) {
-          ent.attackCooldown = (ent.attackCooldown || 0) - dt;
-          if (ent.attackCooldown <= 0) {
-            audio.playHit();
-            let dmg = 15;
-            if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
-              dmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+  for (const ent of state.entities) {
+    // 1. Spiders & Spider Warriors with Kiting & Telegraphing
+    if (ent.type === 'spider' || ent.type === 'spider_warrior') {
+      const d = dist(ent.x, ent.y, p.x, p.y);
+      const isWarrior = ent.type === 'spider_warrior';
+      const attackRange = isWarrior ? 42 : 32;
+
+      // Spiderhat Bodyguard Mode
+      if (hasSpiderhat && d < 320) {
+        ent.isFollower = true;
+        ent.chasing = false;
+        // Follow Wilson or attack Wilson's target
+        let targetMob = ent.target;
+        if (!targetMob || targetMob.hp <= 0) {
+          // Wander peacefully near Wilson
+          const followAngle = Math.atan2(p.y - ent.y, p.x - ent.x);
+          if (d > 70) {
+            ent.x += Math.cos(followAngle) * 75 * dt;
+            ent.y += Math.sin(followAngle) * 75 * dt;
+          }
+        } else {
+          // Attack target mob
+          const tDist = dist(ent.x, ent.y, targetMob.x, targetMob.y);
+          const tAngle = Math.atan2(targetMob.y - ent.y, targetMob.x - ent.x);
+          if (tDist > 30) {
+            ent.x += Math.cos(tAngle) * 85 * dt;
+            ent.y += Math.sin(tAngle) * 85 * dt;
+          } else {
+            ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+            if (ent.attackCooldown <= 0) {
+              audio.playHit();
+              targetMob.hp -= (isWarrior ? 24 : 16);
+              createHitParticles(targetMob.x, targetMob.y, '#e74c3c');
+              ent.attackCooldown = 1.4;
             }
-            p.hp -= dmg;
-            showToast('受到蜘蛛咬伤！');
-            ent.attackCooldown = 1.3;
+          }
+        }
+      } else if (d < 250) {
+        // Normal Hostile Spider AI
+        ent.isFollower = false;
+        const angle = Math.atan2(p.y - ent.y, p.x - ent.x);
+
+        // Telegraph & Windup State Machine
+        if (ent.attackWindup > 0) {
+          ent.attackWindup -= dt;
+          // Frozen in place during wind-up (telegraphing rearing pose)
+          if (ent.attackWindup <= 0) {
+            // Strike execution!
+            if (dist(ent.x, ent.y, p.x, p.y) <= attackRange + 12) {
+              audio.playHit();
+              let dmg = isWarrior ? 22 : 14;
+              if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
+                dmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+              }
+              p.hp -= dmg;
+              showToast(isWarrior ? '受到蜘蛛战士突袭扑咬！' : '受到蜘蛛咬伤！');
+            } else {
+              // Missed / Player successfully kited!
+              createHitParticles(ent.x, ent.y, '#9e9e9e');
+            }
+            ent.attackCooldown = 1.6;
+          }
+        } else {
+          ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+          if (ent.attackCooldown <= 0 && d <= attackRange) {
+            // Start Wind-up Telegraph!
+            ent.attackWindup = isWarrior ? 0.35 : 0.42;
+          } else {
+            ent.x += Math.cos(angle) * (isWarrior ? 95 : 75) * dt;
+            ent.y += Math.sin(angle) * (isWarrior ? 95 : 75) * dt;
           }
         }
       }
     }
 
-    // 2. Wild Hounds (Normal, Ice, Fire) - Realistic Aggro & Hunting Behavior
+    // 2. Wild Hounds (Normal, Ice, Fire) with Authentic Kiting
     if (ent.type === 'hound' || ent.type === 'ice_hound' || ent.type === 'fire_hound') {
       ent.animTimer = (ent.animTimer || 0) + dt;
       const d = dist(ent.x, ent.y, p.x, p.y);
       const aggroRange = state.difficulty === 'easy' ? 140 : (state.difficulty === 'hard' ? 280 : 200);
+      const attackRange = 34;
 
-      // Chase player only if wave hound, within aggro range, or already actively chasing within 320px
       if (ent.isWave || d < aggroRange || (ent.chasing && d < 320)) {
         ent.chasing = true;
         const angle = Math.atan2(p.y - ent.y, p.x - ent.x);
-        ent.x += Math.cos(angle) * ent.speed * dt;
-        ent.y += Math.sin(angle) * ent.speed * dt;
         ent.facing = p.x < ent.x ? 'left' : 'right';
 
-        if (d < 28) {
-          ent.attackCooldown = (ent.attackCooldown || 0) - dt;
-          if (ent.attackCooldown <= 0) {
-            audio.playHit();
-            let dmg = ent.type === 'fire_hound' ? 24 : 20;
-            if (state.difficulty === 'easy') dmg *= 0.5;
-            else if (state.difficulty === 'hard') dmg *= 1.4;
-            if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
-              dmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+        if (ent.attackWindup > 0) {
+          ent.attackWindup -= dt;
+          // Hound pauses and crouches back baring fangs
+          if (ent.attackWindup <= 0) {
+            // Bite moment!
+            if (dist(ent.x, ent.y, p.x, p.y) <= attackRange + 12) {
+              audio.playHit();
+              let dmg = ent.type === 'fire_hound' ? 24 : 20;
+              if (state.difficulty === 'easy') dmg *= 0.5;
+              else if (state.difficulty === 'hard') dmg *= 1.4;
+              if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
+                dmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+              }
+              p.hp -= dmg;
+              if (ent.type === 'fire_hound') p.temp += 10;
+              if (ent.type === 'ice_hound') p.temp -= 10;
+              showToast(ent.type === 'fire_hound' ? '🔥 熔岩火狗撕咬了你！' : '🐺 野性猎犬撕咬了你！');
+            } else {
+              // Missed / Player successfully dodged!
+              createHitParticles(ent.x, ent.y, '#757575');
             }
-            p.hp -= dmg;
-            if (ent.type === 'fire_hound') p.temp += 10;
-            if (ent.type === 'ice_hound') p.temp -= 10;
-            showToast(ent.type === 'fire_hound' ? '🔥 熔岩火狗撕咬了你！' : '🐺 野性猎犬撕咬了你！');
-            ent.attackCooldown = 1.2;
+            ent.attackCooldown = 1.4;
+          }
+        } else {
+          ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+          if (ent.attackCooldown <= 0 && d <= attackRange) {
+            ent.attackWindup = 0.38; // 0.38s wind-up telegraph
+          } else {
+            ent.x += Math.cos(angle) * ent.speed * dt;
+            ent.y += Math.sin(angle) * ent.speed * dt;
           }
         }
       } else {
-        // Lost player or peaceful patrol
         ent.chasing = false;
         ent.wanderTimer = (ent.wanderTimer || 0) - dt;
         if (ent.wanderTimer <= 0) {
@@ -4799,99 +4948,341 @@ function updateEntities(dt, isDark) {
       }
     }
 
-    // 3. Boss: Deerclops (Winter Giant)
+    // 3. Mini-Boss: Treeguard (树人守卫)
+    if (ent.type === 'treeguard') {
+      const d = dist(ent.x, ent.y, p.x, p.y);
+      const angle = Math.atan2(p.y - ent.y, p.x - ent.x);
+
+      if (ent.attackWindup > 0) {
+        ent.attackWindup -= dt;
+        // Raises branch high, shaking ground!
+        if (ent.attackWindup <= 0) {
+          audio.playThunder();
+          if (dist(ent.x, ent.y, p.x, p.y) <= 75) {
+            let dmg = 52;
+            if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
+              dmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+            }
+            p.hp -= dmg;
+            p.sanity -= 12;
+            showToast('🌲 树人守卫巨臂重锤！震碎了大地！');
+          } else {
+            // Dodged!
+            createHitParticles(ent.x, ent.y, '#8d6e63');
+          }
+          ent.attackCooldown = 2.4;
+        }
+      } else {
+        ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+        if (ent.attackCooldown <= 0 && d <= 68) {
+          ent.attackWindup = 0.75; // 0.75s heavy stomp wind-up
+        } else {
+          ent.x += Math.cos(angle) * 42 * dt;
+          ent.y += Math.sin(angle) * 42 * dt;
+        }
+      }
+    }
+
+    // 4. Mini-Boss: Spider Queen (蜘蛛女王)
+    if (ent.type === 'spider_queen') {
+      const d = dist(ent.x, ent.y, p.x, p.y);
+      const angle = Math.atan2(p.y - ent.y, p.x - ent.x);
+
+      // Periodically give birth to Spider Warriors
+      ent.spawnTimer = (ent.spawnTimer || 12) - dt;
+      if (ent.spawnTimer <= 0) {
+        ent.spawnTimer = 14;
+        state.entities.push({
+          type: 'spider_warrior',
+          x: ent.x + (Math.random() - 0.5) * 40,
+          y: ent.y + (Math.random() - 0.5) * 40,
+          hp: 120, maxHp: 120, speed: 95, radius: 18
+        });
+        showToast('🕷️ 蜘蛛女王产下一只凶猛的蜘蛛战士！');
+      }
+
+      if (ent.attackWindup > 0) {
+        ent.attackWindup -= dt;
+        if (ent.attackWindup <= 0) {
+          audio.playHit();
+          if (dist(ent.x, ent.y, p.x, p.y) <= 55) {
+            let dmg = 38;
+            if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
+              dmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+            }
+            p.hp -= dmg;
+            showToast('👑 蜘蛛女王剧毒螯肢刺穿了你！');
+          }
+          ent.attackCooldown = 2.2;
+        }
+      } else {
+        ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+        if (ent.attackCooldown <= 0 && d <= 52) {
+          ent.attackWindup = 0.65;
+        } else {
+          ent.x += Math.cos(angle) * 48 * dt;
+          ent.y += Math.sin(angle) * 48 * dt;
+        }
+      }
+    }
+
+    // 5. Mini-Boss: Varg (座狼/恶魔荒原狼领袖)
+    if (ent.type === 'varg') {
+      const d = dist(ent.x, ent.y, p.x, p.y);
+      const angle = Math.atan2(p.y - ent.y, p.x - ent.x);
+      ent.facing = p.x < ent.x ? 'left' : 'right';
+
+      // Howl to summon wild hounds
+      ent.howlTimer = (ent.howlTimer || 16) - dt;
+      if (ent.howlTimer <= 0) {
+        ent.howlTimer = 18;
+        audio.playWolfHowl();
+        showToast('🐺 恶魔座狼仰天咆哮！召唤了荒原猎犬卫队！');
+        for (let i = 0; i < 2; i++) {
+          state.entities.push({
+            type: Math.random() < 0.5 ? 'fire_hound' : 'hound',
+            x: ent.x + (Math.random() - 0.5) * 60,
+            y: ent.y + (Math.random() - 0.5) * 60,
+            hp: 90, maxHp: 90, speed: 110, radius: 18, isWave: true
+          });
+        }
+      }
+
+      if (ent.attackWindup > 0) {
+        ent.attackWindup -= dt;
+        if (ent.attackWindup <= 0) {
+          audio.playHit();
+          if (dist(ent.x, ent.y, p.x, p.y) <= 48) {
+            let dmg = 46;
+            if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
+              dmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+            }
+            p.hp -= dmg;
+            showToast('🐺 座狼狂暴撕咬了你！');
+          }
+          ent.attackCooldown = 1.8;
+        }
+      } else {
+        ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+        if (ent.attackCooldown <= 0 && d <= 46) {
+          ent.attackWindup = 0.5;
+        } else {
+          ent.x += Math.cos(angle) * 72 * dt;
+          ent.y += Math.sin(angle) * 72 * dt;
+        }
+      }
+    }
+
+    // 6. Mini-Boss: Ancient Guardian (远古犀牛守护者)
+    if (ent.type === 'ancient_guardian') {
+      const d = dist(ent.x, ent.y, p.x, p.y);
+      const angle = Math.atan2(p.y - ent.y, p.x - ent.x);
+
+      if (ent.attackWindup > 0) {
+        ent.attackWindup -= dt;
+        if (ent.attackWindup <= 0) {
+          audio.playThunder();
+          if (dist(ent.x, ent.y, p.x, p.y) <= 60) {
+            let dmg = 58;
+            if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
+              dmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+            }
+            p.hp -= dmg;
+            p.sanity -= 15;
+            showToast('🦏 远古守护者巨角蛮牛冲锋！撞飞了你！');
+          }
+          ent.attackCooldown = 2.8;
+        }
+      } else {
+        ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+        if (ent.attackCooldown <= 0 && d <= 56) {
+          ent.attackWindup = 0.8;
+        } else {
+          ent.x += Math.cos(angle) * 85 * dt;
+          ent.y += Math.sin(angle) * 85 * dt;
+        }
+      }
+    }
+
+    // 7. World Boss: Deerclops (冬季霸主 - 独眼巨鹿)
     if (ent.type === 'deerclops') {
       const d = dist(ent.x, ent.y, p.x, p.y);
       const angle = Math.atan2(p.y - ent.y, p.x - ent.x);
-      ent.x += Math.cos(angle) * 60 * dt;
-      ent.y += Math.sin(angle) * 60 * dt;
 
-      if (d < 55) {
-        ent.attackCooldown = (ent.attackCooldown || 0) - dt;
-        if (ent.attackCooldown <= 0) {
+      if (ent.attackWindup > 0) {
+        ent.attackWindup -= dt;
+        if (ent.attackWindup <= 0) {
           audio.playThunder();
-          let dmg = 65;
-          if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
-            dmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+          if (dist(ent.x, ent.y, p.x, p.y) <= 80) {
+            let dmg = 65;
+            if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
+              dmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+            }
+            p.hp -= dmg;
+            p.sanity -= 20;
+            p.temp -= 15;
+            showToast('★ 独眼巨鹿震撼冰柱重创了你！');
           }
-          p.hp -= dmg;
-          p.sanity -= 20;
-          p.temp -= 15;
-          showToast('独眼巨鹿震撼冰柱重创了你！');
-          ent.attackCooldown = 2.4;
+          ent.attackCooldown = 2.6;
+        }
+      } else {
+        ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+        if (ent.attackCooldown <= 0 && d <= 75) {
+          ent.attackWindup = 0.85;
+        } else {
+          ent.x += Math.cos(angle) * 58 * dt;
+          ent.y += Math.sin(angle) * 58 * dt;
         }
       }
     }
 
-    // 4. Boss: Bearger (Autumn Giant)
+    // 8. World Boss: Bearger (秋季霸主 - 熊獾)
     if (ent.type === 'bearger') {
       const d = dist(ent.x, ent.y, p.x, p.y);
       const angle = Math.atan2(p.y - ent.y, p.x - ent.x);
-      ent.x += Math.cos(angle) * 65 * dt;
-      ent.y += Math.sin(angle) * 65 * dt;
 
-      if (d < 60) {
-        ent.attackCooldown = (ent.attackCooldown || 0) - dt;
-        if (ent.attackCooldown <= 0) {
+      if (ent.attackWindup > 0) {
+        ent.attackWindup -= dt;
+        if (ent.attackWindup <= 0) {
           audio.playBossRoar();
-          let dmg = 50;
-          if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
-            dmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+          if (dist(ent.x, ent.y, p.x, p.y) <= 75) {
+            let dmg = 54;
+            if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
+              dmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+            }
+            p.hp -= dmg;
+            p.sanity -= 15;
+            showToast('★ 熊獾巨爪撼地重击！震荡波击溃了你的护甲！');
           }
-          p.hp -= dmg;
-          p.sanity -= 15;
-          showToast('熊獾巨爪撼地重击！震荡波击溃了你的护甲！');
-          ent.attackCooldown = 2.5;
+          ent.attackCooldown = 2.8;
+        }
+      } else {
+        ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+        if (ent.attackCooldown <= 0 && d <= 70) {
+          ent.attackWindup = 0.8;
+        } else {
+          ent.x += Math.cos(angle) * 62 * dt;
+          ent.y += Math.sin(angle) * 62 * dt;
         }
       }
     }
 
-    // 5. Boss: Moose/Goose (Spring Giant)
+    // 9. World Boss: Moose/Goose (春季霸主 - 驼鹿鹅)
     if (ent.type === 'moosegoose') {
       const d = dist(ent.x, ent.y, p.x, p.y);
       const angle = Math.atan2(p.y - ent.y, p.x - ent.x);
-      ent.x += Math.cos(angle) * 80 * dt;
-      ent.y += Math.sin(angle) * 80 * dt;
 
-      if (d < 50) {
-        ent.attackCooldown = (ent.attackCooldown || 0) - dt;
-        if (ent.attackCooldown <= 0) {
+      if (ent.attackWindup > 0) {
+        ent.attackWindup -= dt;
+        if (ent.attackWindup <= 0) {
           audio.playThunder();
-          let dmg = 45;
-          if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
-            dmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+          if (dist(ent.x, ent.y, p.x, p.y) <= 65) {
+            let dmg = 45;
+            if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
+              dmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+            }
+            p.hp -= dmg;
+            p.wetness = Math.min(100, p.wetness + 25);
+            showToast('★ 驼鹿鹅高亢尖啸！狂暴水龙卷席卷了你！');
           }
-          p.hp -= dmg;
-          p.wetness = Math.min(100, p.wetness + 25);
-          showToast('鹿角鸭高亢尖啸！狂暴水龙卷席卷了你！');
-          ent.attackCooldown = 2.1;
+          ent.attackCooldown = 2.4;
+        }
+      } else {
+        ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+        if (ent.attackCooldown <= 0 && d <= 62) {
+          ent.attackWindup = 0.65;
+        } else {
+          ent.x += Math.cos(angle) * 78 * dt;
+          ent.y += Math.sin(angle) * 78 * dt;
         }
       }
     }
 
-    // 6. Boss: Dragonfly (Summer Giant)
+    // 10. World Boss: Dragonfly (夏季霸主 - 龙蝇)
     if (ent.type === 'dragonfly') {
       const d = dist(ent.x, ent.y, p.x, p.y);
       const angle = Math.atan2(p.y - ent.y, p.x - ent.x);
-      ent.x += Math.cos(angle) * 90 * dt;
-      ent.y += Math.sin(angle) * 90 * dt;
 
-      if (d < 55) {
-        ent.attackCooldown = (ent.attackCooldown || 0) - dt;
-        if (ent.attackCooldown <= 0) {
+      if (ent.attackWindup > 0) {
+        ent.attackWindup -= dt;
+        if (ent.attackWindup <= 0) {
           audio.playBossRoar();
-          let dmg = 55;
-          if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
-            dmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+          if (dist(ent.x, ent.y, p.x, p.y) <= 70) {
+            let dmg = 55;
+            if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
+              dmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+            }
+            p.hp -= dmg;
+            p.temp += 20;
+            showToast('★ 龙蝇三连熔岩践踏！地面化作灼热火海！');
           }
-          p.hp -= dmg;
-          p.temp += 20;
-          showToast('龙蝇三连熔岩践踏！地面化作灼热火海！');
-          ent.attackCooldown = 2.2;
+          ent.attackCooldown = 2.6;
+        }
+      } else {
+        ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+        if (ent.attackCooldown <= 0 && d <= 65) {
+          ent.attackWindup = 0.7;
+        } else {
+          ent.x += Math.cos(angle) * 88 * dt;
+          ent.y += Math.sin(angle) * 88 * dt;
         }
       }
     }
 
+    // 11. High-Tech Defense: Houndius Shootius (远古眼球激光炮塔)
+    if (ent.type === 'houndius_shootius') {
+      ent.shootCooldown = (ent.shootCooldown || 0) - dt;
+      if (ent.laserTimer > 0) ent.laserTimer -= dt;
+
+      if (ent.shootCooldown <= 0) {
+        let bestTarget = null;
+        let bestDist = 260;
+        const hostiles = ['hound', 'ice_hound', 'fire_hound', 'spider', 'spider_warrior', 'spider_queen',
+                          'treeguard', 'varg', 'ancient_guardian', 'deerclops', 'bearger', 'moosegoose',
+                          'dragonfly', 'crawling_horror', 'terrorbeak'];
+        for (const target of state.entities) {
+          if (hostiles.includes(target.type) && target.hp > 0) {
+            const td = dist(ent.x, ent.y, target.x, target.y);
+            if (td < bestDist) {
+              bestDist = td;
+              bestTarget = target;
+            }
+          }
+        }
+
+        if (bestTarget) {
+          audio.playLaser();
+          bestTarget.hp -= 65;
+          ent.shootCooldown = 1.35;
+          ent.targetPos = { x: bestTarget.x, y: bestTarget.y };
+          ent.laserTimer = 0.22;
+          createHitParticles(bestTarget.x, bestTarget.y, '#e74c3c');
+          createHitParticles(bestTarget.x, bestTarget.y, '#ffffff');
+          showToast('🗼 远古眼球炮塔射出毁灭激光！对敌怪造成 65 穿透伤害！');
+        }
+      }
+    }
+
+    // 12. Eternal Facility: Scaled Furnace (龙鳞火炉)
+    if (ent.type === 'scaled_furnace') {
+      if (dist(ent.x, ent.y, p.x, p.y) < 220) {
+        inLight = true;
+        if (p.temp < 38) p.temp = Math.min(38, p.temp + 14 * dt);
+      }
+    }
+
+    // 13. Celestial: Dwarf Star (微缩恒星)
+    if (ent.type === 'dwarf_star') {
+      ent.duration = (ent.duration || 360) - dt;
+      if (dist(ent.x, ent.y, p.x, p.y) < 260) {
+        inLight = true;
+        if (p.temp < 40) p.temp = Math.min(40, p.temp + 15 * dt);
+        p.sanity = Math.min(p.maxSanity, p.sanity + (25 / 60) * dt);
+      }
+      if (ent.duration <= 0) {
+        state.entities = state.entities.filter(e => e !== ent);
+      }
+    }
     // 7. Shadow Horrors: Crawling Horror & Terrorbeak
     if (ent.type === 'crawling_horror' || ent.type === 'terrorbeak') {
       const d = dist(ent.x, ent.y, p.x, p.y);
@@ -6774,6 +7165,31 @@ function drawPlayer() {
     }
   }
 
+    // Dynamic Weapon Slash Blade Arc
+  if (p.slashEffect && p.slashEffect.timer > 0) {
+    const sf = p.slashEffect;
+    const progress = sf.timer / sf.maxTimer;
+    ctx.save();
+    ctx.rotate(sf.angle || 0);
+    ctx.strokeStyle = sf.color || '#ffffff';
+    ctx.lineWidth = 4 * progress + 1.5;
+    ctx.shadowColor = sf.color || '#ffffff';
+    ctx.shadowBlur = 8;
+    ctx.beginPath();
+    const r = (sf.reach || 75) * 0.85;
+    ctx.arc(0, 0, r, -Math.PI / 3, Math.PI / 3, false);
+    ctx.stroke();
+
+    // Slash sparks
+    ctx.fillStyle = sf.color || '#fff';
+    for (let i = 0; i < 3; i++) {
+      const spA = (-Math.PI / 3) + Math.random() * (Math.PI * 2 / 3);
+      const spR = r + (Math.random() - 0.5) * 10;
+      ctx.fillRect(Math.cos(spA) * spR - 1.5, Math.sin(spA) * spR - 1.5, 3, 3);
+    }
+    ctx.restore();
+  }
+
   ctx.restore();
 }
 
@@ -7266,66 +7682,350 @@ function drawEntity(ent) {
       ctx.fill();
     }
   } else if (ent.type === 'deerclops') {
-    // Winter Boss Deerclops
-    ctx.fillStyle = '#1a237e';
+    // Winter Boss: Deerclops (独眼巨鹿 - Gothic Overhaul)
+    ctx.fillStyle = '#1e2838';
     ctx.beginPath();
-    ctx.ellipse(0, -20, 46, 55, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, -28, 48, 62, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#ff1744';
+    ctx.strokeStyle = '#0d131a';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Heavy Claws & Limbs
+    ctx.fillStyle = '#161e29';
     ctx.beginPath();
-    ctx.arc(0, -35, 12, 0, Math.PI * 2);
+    ctx.ellipse(-38, -15, 14, 28, Math.PI / 8, 0, Math.PI * 2);
+    ctx.ellipse(38, -15, 14, 28, -Math.PI / 8, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Curling Ancient Goat/Ram Horns
+    ctx.strokeStyle = '#2b2118';
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.arc(-22, -62, 16, Math.PI * 0.4, Math.PI * 1.5, false);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(22, -62, 16, Math.PI * 1.5, Math.PI * 2.6, false);
+    ctx.stroke();
+
+    // Colossal Central Hypnotic Single Eye
+    const eyeGlow = ent.attackWindup > 0 ? '#00e5ff' : '#ff1744';
+    ctx.fillStyle = eyeGlow;
+    ctx.beginPath();
+    ctx.arc(0, -42, 14, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#ffeb3b';
     ctx.beginPath();
-    ctx.arc(0, -35, 6, 0, Math.PI * 2);
+    ctx.arc(0, -42, 6, 0, Math.PI * 2);
     ctx.fill();
+    ctx.fillStyle = '#000000';
+    ctx.beginPath();
+    ctx.arc(0, -42, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Frost Aura Particles
+    ctx.fillStyle = 'rgba(178, 235, 242, 0.6)';
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath();
+      ctx.arc((Math.random() - 0.5) * 60, -20 + (Math.random() - 0.5) * 40, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
   } else if (ent.type === 'bearger') {
-    // Autumn Boss Bearger
+    // Autumn Boss: Bearger (熊獾 - Gothic Overhaul)
     ctx.fillStyle = '#3e2723';
     ctx.beginPath();
-    ctx.ellipse(0, -20, 50, 45, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, -24, 52, 48, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#1b120c';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Badger Face Mask Markings
+    ctx.fillStyle = '#d7ccc8';
+    ctx.beginPath();
+    ctx.ellipse(0, -28, 16, 22, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#212121';
+    ctx.fillRect(-12, -32, 6, 12);
+    ctx.fillRect(6, -32, 6, 12);
+
+    // Glowing predator eyes
+    ctx.fillStyle = '#ff1744';
     ctx.beginPath();
-    ctx.arc(0, -22, 15, 0, Math.PI * 2);
+    ctx.arc(-8, -26, 3, 0, Math.PI * 2);
+    ctx.arc(8, -26, 3, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#ff5252';
-    ctx.fillRect(-8, -26, 4, 3);
-    ctx.fillRect(4, -26, 4, 3);
+
+    // Heavy Ground Stomp Paws
+    ctx.fillStyle = '#1b120c';
+    ctx.fillRect(-35, 2, 22, 14);
+    ctx.fillRect(13, 2, 22, 14);
   } else if (ent.type === 'moosegoose') {
-    // Spring Boss Moose/Goose
+    // Spring Boss: Moose/Goose (驼鹿鹅 - Gothic Overhaul)
     ctx.fillStyle = '#37474f';
     ctx.beginPath();
-    ctx.ellipse(0, -10, 38, 42, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, -14, 40, 44, 0, 0, Math.PI * 2);
     ctx.fill();
-    // Neck & Antlers
     ctx.fillStyle = '#cfd8dc';
-    ctx.fillRect(-6, -45, 12, 35);
+    ctx.fillRect(-7, -50, 14, 40); // Long goose neck
     ctx.fillStyle = '#ff9800';
-    ctx.fillRect(-12, -45, 14, 8); // Beak
-    ctx.strokeStyle = '#8d6e63';
+    ctx.fillRect(-14, -54, 16, 9); // Beak
+    // Antlers
+    ctx.strokeStyle = '#5d4037';
     ctx.lineWidth = 4;
     ctx.beginPath();
-    ctx.moveTo(0, -45);
-    ctx.lineTo(-25, -65);
-    ctx.moveTo(0, -45);
-    ctx.lineTo(25, -65);
+    ctx.moveTo(0, -52);
+    ctx.lineTo(-28, -75);
+    ctx.moveTo(-16, -62);
+    ctx.lineTo(-32, -62);
+    ctx.moveTo(0, -52);
+    ctx.lineTo(28, -75);
+    ctx.moveTo(16, -62);
+    ctx.lineTo(32, -62);
     ctx.stroke();
   } else if (ent.type === 'dragonfly') {
-    // Summer Boss Dragonfly
+    // Summer Boss: Dragonfly (龙蝇 - Gothic Overhaul)
     ctx.fillStyle = '#d84315';
     ctx.beginPath();
-    ctx.ellipse(0, -15, 36, 42, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, -18, 38, 44, 0, 0, Math.PI * 2);
     ctx.fill();
-    // Iridescent wings
-    ctx.fillStyle = 'rgba(255, 235, 59, 0.6)';
+    // Glowing lava underbelly
+    ctx.fillStyle = '#ffeb3b';
     ctx.beginPath();
-    ctx.ellipse(-28, -25, 20, 8, Math.PI / 4, 0, Math.PI * 2);
-    ctx.ellipse(28, -25, 20, 8, -Math.PI / 4, 0, Math.PI * 2);
+    ctx.ellipse(0, -14, 20, 24, 0, 0, Math.PI * 2);
     ctx.fill();
+    // Shimmering iridescent wings
+    const wingFlap = Math.sin(Date.now() * 0.02) * 6;
+    ctx.fillStyle = 'rgba(255, 235, 59, 0.55)';
+    ctx.beginPath();
+    ctx.ellipse(-32, -26 + wingFlap, 24, 9, Math.PI / 4, 0, Math.PI * 2);
+    ctx.ellipse(32, -26 - wingFlap, 24, 9, -Math.PI / 4, 0, Math.PI * 2);
+    ctx.fill();
+    // Eyes
     ctx.fillStyle = '#ff1744';
-    ctx.fillRect(-8, -26, 5, 5);
-    ctx.fillRect(3, -26, 5, 5);
+    ctx.fillRect(-10, -32, 6, 6);
+    ctx.fillRect(4, -32, 6, 6);
+  } else if (ent.type === 'treeguard') {
+    // Mini-Boss: Treeguard (树人守卫 - Living Ancient Pine)
+    ctx.fillStyle = '#3e2723';
+    ctx.beginPath();
+    ctx.roundRect(-22, -45, 44, 52, 6);
+    ctx.fill();
+    ctx.strokeStyle = '#1b120c';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Pine Foliage Crown
+    ctx.fillStyle = '#1b5e20';
+    ctx.beginPath();
+    ctx.moveTo(-32, -45);
+    ctx.lineTo(0, -82);
+    ctx.lineTo(32, -45);
+    ctx.closePath();
+    ctx.fill();
+
+    // Heavy Branch Limbs
+    ctx.fillStyle = '#4e342e';
+    ctx.fillRect(-35, -30, 14, 30);
+    ctx.fillRect(21, -30, 14, 30);
+    // Walking Trunk Legs
+    ctx.fillRect(-18, 5, 12, 14);
+    ctx.fillRect(6, 5, 12, 14);
+
+    // Glowing hollow amber eyes
+    const eyeCol = ent.attackWindup > 0 ? '#ff1744' : '#ffb300';
+    ctx.fillStyle = eyeCol;
+    ctx.beginPath();
+    ctx.arc(-8, -25, 4, 0, Math.PI * 2);
+    ctx.arc(8, -25, 4, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (ent.type === 'spider_queen') {
+    // Mini-Boss: Spider Queen (蜘蛛女王)
+    ctx.fillStyle = '#1a1016';
+    ctx.beginPath();
+    ctx.ellipse(0, -18, 36, 42, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#4a148c';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    // Egg Sacs on Abdomen
+    ctx.fillStyle = '#b71c1c';
+    ctx.beginPath();
+    ctx.arc(-12, -22, 6, 0, Math.PI * 2);
+    ctx.arc(12, -22, 6, 0, Math.PI * 2);
+    ctx.arc(0, -10, 8, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 8 Spidery jointed legs
+    ctx.strokeStyle = '#211018';
+    ctx.lineWidth = 3.5;
+    for (let side = -1; side <= 1; side += 2) {
+      for (let leg = -20; leg <= 10; leg += 10) {
+        ctx.beginPath();
+        ctx.moveTo(side * 24, leg);
+        ctx.lineTo(side * 46, leg - 12);
+        ctx.lineTo(side * 52, leg + 18);
+        ctx.stroke();
+      }
+    }
+
+    // Cluster of 6 glowing crimson eyes
+    ctx.fillStyle = '#ff1744';
+    ctx.fillRect(-8, -38, 3, 3);
+    ctx.fillRect(-2, -40, 4, 4);
+    ctx.fillRect(5, -38, 3, 3);
+    ctx.fillRect(-6, -34, 3, 3);
+    ctx.fillRect(3, -34, 3, 3);
+  } else if (ent.type === 'varg') {
+    // Mini-Boss: Varg (恶魔荒原狼座狼)
+    const facingLeft = ent.facing === 'left';
+    ctx.save();
+    if (facingLeft) ctx.scale(-1, 1);
+
+    // Hulking dire wolf torso
+    ctx.fillStyle = '#1c1b1f';
+    ctx.beginPath();
+    ctx.ellipse(0, -22, 38, 26, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Heavy Quadruped Limbs
+    ctx.fillStyle = '#121114';
+    ctx.fillRect(-26, -5, 10, 18);
+    ctx.fillRect(-12, -5, 10, 18);
+    ctx.fillRect(10, -5, 10, 18);
+    ctx.fillRect(24, -5, 10, 18);
+
+    // Obsidian Spine Quills
+    ctx.fillStyle = '#263238';
+    for (let x = -20; x <= 20; x += 10) {
+      ctx.beginPath();
+      ctx.moveTo(x - 4, -34);
+      ctx.lineTo(x, -52);
+      ctx.lineTo(x + 4, -34);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // Demonic Wolf Head & Horns
+    ctx.fillStyle = '#212121';
+    ctx.beginPath();
+    ctx.ellipse(28, -30, 16, 14, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Ivory Fangs & Jaws
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(34, -26, 3, 8);
+    ctx.fillRect(38, -26, 3, 8);
+    // Glowing Blood Eyes
+    ctx.fillStyle = '#ff1744';
+    ctx.fillRect(26, -34, 4, 4);
+
+    ctx.restore();
+  } else if (ent.type === 'ancient_guardian') {
+    // Mini-Boss: Ancient Guardian (远古犀牛守护者)
+    ctx.fillStyle = '#423d33';
+    ctx.beginPath();
+    ctx.roundRect(-30, -38, 60, 48, 8);
+    ctx.fill();
+    ctx.strokeStyle = '#c5a059';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Ancient Thulecite Gold Horns
+    ctx.strokeStyle = '#ffd700';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(-16, -38);
+    ctx.lineTo(-42, -62);
+    ctx.moveTo(16, -38);
+    ctx.lineTo(42, -62);
+    ctx.stroke();
+
+    // Red Runic Eye Visor
+    ctx.fillStyle = '#ff1744';
+    ctx.fillRect(-16, -24, 32, 6);
+  } else if (ent.type === 'houndius_shootius') {
+    // Ancient Facility: Houndius Shootius (远古眼球激光炮塔)
+    ctx.fillStyle = '#37474f';
+    ctx.fillRect(-18, -12, 36, 18); // Base
+    ctx.fillStyle = '#c5a059';
+    ctx.fillRect(-12, -26, 24, 16); // Pillar
+
+    // Perched Giant Mystical Eyeball
+    ctx.fillStyle = '#eceff1';
+    ctx.beginPath();
+    ctx.arc(0, -36, 15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#d50000';
+    ctx.beginPath();
+    ctx.arc(0, -36, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffeb3b';
+    ctx.beginPath();
+    ctx.arc(0, -36, 3, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Laser Beam Firing Line
+    if (ent.laserTimer > 0 && ent.targetPos) {
+      const relX = ent.targetPos.x - ent.x;
+      const relY = ent.targetPos.y - ent.y;
+      ctx.strokeStyle = '#ff1744';
+      ctx.lineWidth = 4;
+      ctx.shadowColor = '#ff1744';
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.moveTo(0, -36);
+      ctx.lineTo(relX, relY);
+      ctx.stroke();
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, -36);
+      ctx.lineTo(relX, relY);
+      ctx.stroke();
+    }
+  } else if (ent.type === 'scaled_furnace') {
+    // High-Tech Eternal Facility: Scaled Furnace (龙鳞火炉)
+    ctx.fillStyle = '#4e342e';
+    ctx.beginPath();
+    ctx.roundRect(-22, -28, 44, 34, 6);
+    ctx.fill();
+    ctx.strokeStyle = '#d84315';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    // Roaring Internal Magma Fire
+    ctx.fillStyle = '#ff5722';
+    ctx.beginPath();
+    ctx.arc(0, -10, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffeb3b';
+    ctx.beginPath();
+    ctx.arc(0, -10, 6, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (ent.type === 'dwarf_star') {
+    // Celestial Object: Dwarf Star (微缩恒星)
+    const pulse = Math.sin(Date.now() * 0.008) * 4;
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.arc(0, -15, 14 + pulse, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(255, 235, 59, 0.4)';
+    ctx.beginPath();
+    ctx.arc(0, -15, 26 + pulse * 1.5, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (ent.type === 'spider_den') {
+    // Planted Spider Den
+    ctx.fillStyle = '#261c14';
+    ctx.beginPath();
+    ctx.ellipse(0, -10, 24, 18, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = '#eceff1';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(0, -10, 16, 0, Math.PI * 2);
+    ctx.stroke();
   } else if (ent.type === 'crawling_horror' || ent.type === 'terrorbeak') {
     // Shadow Horrors
     ctx.fillStyle = 'rgba(15, 5, 25, 0.9)';
@@ -8503,12 +9203,18 @@ function restartWorld() {
 function setupInputs() {
   window.addEventListener('keydown', (e) => {
     state.keys[e.code] = true;
-    if (e.code === 'Space') interactNearest();
+    if (e.code === 'Space' || e.code === 'KeyE') interactNearest();
     else if (e.code === 'KeyF') attackNearest();
-    else if (e.code === 'KeyM') {
+    else if (e.code === 'KeyC') {
+      document.getElementById('craft-drawer')?.classList.toggle('open');
+    } else if (e.code === 'KeyM' || e.code === 'Tab') {
+      e.preventDefault();
       const mapModal = document.getElementById('map-modal');
       mapModal.classList.toggle('hidden');
       if (!mapModal.classList.contains('hidden')) renderFullMap();
+    } else if (e.code === 'Escape' || e.code === 'KeyP') {
+      const menuModal = document.getElementById('menu-modal');
+      menuModal.classList.toggle('hidden');
     } else if (e.code === 'KeyK') {
       openSaveLoadUI();
     } else if (e.code === 'KeyL') {
@@ -8520,6 +9226,25 @@ function setupInputs() {
       onSlotClicked('inv', idx);
     } else if (e.code === 'Digit0') {
       onSlotClicked('inv', 9);
+    }
+  });
+
+  // Desktop Mouse Click on World Canvas (Interact / Attack / Move)
+  canvas.addEventListener('click', (e) => {
+    if (state.blueprint) return;
+    const rect = canvas.getBoundingClientRect();
+    const clickWorldX = e.clientX - rect.left + state.camera.x;
+    const clickWorldY = e.clientY - rect.top + state.camera.y;
+
+    // Check if clicked directly on a hostile mob
+    for (const ent of state.entities) {
+      if (dist(clickWorldX, clickWorldY, ent.x, ent.y) < (ent.radius || 24) + 16) {
+        if (['spider', 'spider_warrior', 'spider_queen', 'hound', 'ice_hound', 'fire_hound',
+             'treeguard', 'varg', 'ancient_guardian', 'deerclops', 'bearger', 'moosegoose', 'dragonfly'].includes(ent.type)) {
+          attackNearest();
+          return;
+        }
+      }
     }
   });
   window.addEventListener('keyup', (e) => { state.keys[e.code] = false; });

@@ -1505,3 +1505,159 @@ body, html {
   transform: scale(0.93);
   border-color: #ffd073 !important;
 }
+
+
+/* ==========================================================================
+   Multi-Device Responsive Layout Engine (Landscape, Tablet, Desktop)
+   ========================================================================== */
+
+/* Key Hint Badges for PC / Desktop */
+.key-hint {
+  display: none;
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #111;
+  color: #ffca28;
+  border: 1px solid #ffca28;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  padding: 1px 4px;
+  pointer-events: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.6);
+  z-index: 5;
+}
+
+/* 1. Mobile & Handheld Landscape Mode (height <= 520px) */
+@media (orientation: landscape) and (max-height: 540px) {
+  #top-hud {
+    padding: calc(4px + env(safe-area-inset-top, 0px)) calc(12px + env(safe-area-inset-right, 0px)) 0 calc(12px + env(safe-area-inset-left, 0px));
+  }
+  
+  .clock-badge {
+    padding: 3px 8px;
+    font-size: 11px;
+  }
+  
+  .stat-badge {
+    min-width: 48px;
+    height: 24px;
+    padding: 2px 6px;
+    font-size: 11px;
+  }
+  
+  /* Compact bottom bar */
+  #hud-bottom {
+    bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+  }
+  
+  #inventory-bar {
+    padding: 3px 6px;
+    gap: 3px;
+  }
+  
+  .inv-slot {
+    width: 38px;
+    height: 38px;
+  }
+
+  /* Dock equipment slots horizontally right above the inventory bar */
+  #equipped-display {
+    bottom: calc(52px + env(safe-area-inset-bottom, 0px));
+    gap: 6px;
+  }
+  
+  .equip-slot {
+    width: 36px;
+    height: 36px;
+  }
+
+  /* Ergonomic thumb controls for landscape handheld gaming */
+  #joystick-zone {
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    left: calc(16px + env(safe-area-inset-left, 0px));
+    width: 86px;
+    height: 86px;
+  }
+  
+  #joystick-base {
+    width: 80px;
+    height: 80px;
+  }
+  
+  #joystick-stick {
+    width: 38px;
+    height: 38px;
+  }
+
+  #action-buttons-zone {
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    right: calc(16px + env(safe-area-inset-right, 0px));
+    gap: 10px;
+  }
+
+  .circle-btn {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .circle-btn .btn-icon {
+    font-size: 22px;
+  }
+
+  .modal-box {
+    max-height: 88vh;
+    overflow-y: auto;
+    padding: 12px 16px;
+  }
+}
+
+/* 2. Tablet & Large Screens (min-width: 768px and min-height: 541px) */
+@media (min-width: 768px) and (min-height: 541px) {
+  #inventory-bar {
+    padding: 6px 12px;
+    gap: 6px;
+  }
+  .inv-slot {
+    width: 48px;
+    height: 48px;
+  }
+  .equip-slot {
+    width: 46px;
+    height: 46px;
+  }
+  #equipped-display {
+    bottom: calc(135px + env(safe-area-inset-bottom, 0px));
+  }
+  #hud-bottom {
+    bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* 3. Desktop / Laptop / Fine-Pointer Controls */
+@media (hover: hover) and (pointer: fine) {
+  #joystick-zone {
+    opacity: 0.35;
+    transition: opacity 0.2s ease;
+  }
+  #joystick-zone:hover {
+    opacity: 0.85;
+  }
+  
+  .circle-btn {
+    cursor: pointer;
+    transition: transform 0.1s ease, filter 0.2s ease;
+  }
+  .circle-btn:hover {
+    filter: brightness(1.15);
+    transform: scale(1.04);
+  }
+  .circle-btn:active {
+    transform: scale(0.96);
+  }
+  
+  .key-hint {
+    display: block !important;
+  }
+}

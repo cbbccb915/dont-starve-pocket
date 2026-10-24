@@ -1,9 +1,9 @@
-const CACHE_NAME = 'dont-starve-v5.5';
+const CACHE_NAME = 'dont-starve-v5.6';
 const ASSETS = [
   './',
   './index.html',
   './style.css?v=5.1',
-  './game.js?v=5.1',
+  './game.js?v=5.6',
   './manifest.json'
 ];
 

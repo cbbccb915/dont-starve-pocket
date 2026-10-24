@@ -10,6 +10,11 @@ class SoundSynth {
   constructor() {
     this.ctx = null;
     this.initialized = false;
+    this.enabled = localStorage.getItem('dst_pocket_sfx') !== '0';
+  }
+
+  canPlay() {
+    return Boolean(this.ctx && this.enabled && !document.hidden);
   }
 
   init() {
@@ -22,7 +27,7 @@ class SoundSynth {
   }
 
   playChop() {
-    if (!this.ctx) return;
+    if (!this.canPlay()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -38,7 +43,7 @@ class SoundSynth {
   }
 
   playMine() {
-    if (!this.ctx) return;
+    if (!this.canPlay()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -54,7 +59,7 @@ class SoundSynth {
   }
 
   playPickup() {
-    if (!this.ctx) return;
+    if (!this.canPlay()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -70,7 +75,7 @@ class SoundSynth {
   }
 
   playCraft() {
-    if (!this.ctx) return;
+    if (!this.canPlay()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -87,7 +92,7 @@ class SoundSynth {
   }
 
   playEat() {
-    if (!this.ctx) return;
+    if (!this.canPlay()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -103,7 +108,7 @@ class SoundSynth {
   }
 
   playHit() {
-    if (!this.ctx) return;
+    if (!this.canPlay()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -119,7 +124,7 @@ class SoundSynth {
   }
 
   playCharlieAttack() {
-    if (!this.ctx) return;
+    if (!this.canPlay()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -135,7 +140,7 @@ class SoundSynth {
   }
 
   playHoundGrowl() {
-    if (!this.ctx) return;
+    if (!this.canPlay()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -152,7 +157,7 @@ class SoundSynth {
   }
 
   playBeefaloGrunt() {
-    if (!this.ctx) return;
+    if (!this.canPlay()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -168,7 +173,7 @@ class SoundSynth {
   }
 
   playThunder() {
-    if (!this.ctx) return;
+    if (!this.canPlay()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -184,7 +189,7 @@ class SoundSynth {
   }
 
   playCookingBubbles() {
-    if (!this.ctx) return;
+    if (!this.canPlay()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -200,7 +205,7 @@ class SoundSynth {
   }
 
   playChester() {
-    if (!this.ctx) return;
+    if (!this.canPlay()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -216,7 +221,7 @@ class SoundSynth {
   }
 
   playMagic() {
-    if (!this.ctx) return;
+    if (!this.canPlay()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -232,7 +237,7 @@ class SoundSynth {
   }
 
   playBossRoar() {
-    if (!this.ctx) return;
+    if (!this.canPlay()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -245,6 +250,56 @@ class SoundSynth {
     gain.connect(this.ctx.destination);
     osc.start(now);
     osc.stop(now + 0.85);
+  }
+
+  playWind() {
+    if (!this.canPlay()) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(120, now);
+    osc.frequency.linearRampToValueAtTime(260, now + 0.2);
+    osc.frequency.linearRampToValueAtTime(90, now + 0.5);
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.55);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.55);
+  }
+
+  playLaser() {
+    if (!this.canPlay()) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(800, now);
+    osc.frequency.exponentialRampToValueAtTime(110, now + 0.3);
+    gain.gain.setValueAtTime(0.35, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.3);
+  }
+
+  playWolfHowl() {
+    if (!this.canPlay()) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(380, now);
+    osc.frequency.linearRampToValueAtTime(540, now + 0.4);
+    osc.frequency.linearRampToValueAtTime(260, now + 0.9);
+    gain.gain.setValueAtTime(0.3, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.95);
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.95);
   }
 }
 
@@ -887,6 +942,12 @@ const state = {
   openedChest: null,
   openedCrockpot: null,
 
+  // Settings (SFX & Touch Haptic Feedback)
+  settings: {
+    sfx: localStorage.getItem('dst_pocket_sfx') !== '0', // default true
+    vibrate: localStorage.getItem('dst_pocket_vibrate') === '1' // default false (NEVER vibrate by default)
+  },
+
   joystick: {
     active: false,
     startX: 0,
@@ -895,6 +956,14 @@ const state = {
     dy: 0
   }
 };
+
+function triggerTouchVibrate(pattern = 10) {
+  if (state.settings && state.settings.vibrate && !document.hidden && navigator.vibrate) {
+    try {
+      navigator.vibrate(pattern);
+    } catch (e) {}
+  }
+}
 
 // Canvas references
 const canvas = document.getElementById('game-canvas');
@@ -4675,6 +4744,14 @@ function createHitParticles(x, y, color) {
 let lastTime = performance.now();
 
 function gameLoop(now) {
+  if (document.hidden) {
+    // Phone screen is off, locked, or browser tab is hidden
+    // Pause execution to guarantee total silence, zero vibration, and zero battery drain while sleeping
+    lastTime = now;
+    requestAnimationFrame(gameLoop);
+    return;
+  }
+
   const dt = Math.min(0.1, (now - lastTime) / 1000);
   lastTime = now;
 
@@ -10640,6 +10717,28 @@ function openMenuUI() {
     }
   });
 
+  // Sound SFX & Touch Vibration Toggles
+  const toggleSfx = document.getElementById('toggle-sfx');
+  if (toggleSfx) {
+    toggleSfx.checked = state.settings.sfx;
+    toggleSfx.onchange = (e) => {
+      state.settings.sfx = e.target.checked;
+      audio.enabled = e.target.checked;
+      localStorage.setItem('dst_pocket_sfx', e.target.checked ? '1' : '0');
+      showToast(e.target.checked ? '🔊 音效已开启' : '🔇 音效已静音');
+    };
+  }
+
+  const toggleVibrate = document.getElementById('toggle-vibrate');
+  if (toggleVibrate) {
+    toggleVibrate.checked = state.settings.vibrate;
+    toggleVibrate.onchange = (e) => {
+      state.settings.vibrate = e.target.checked;
+      localStorage.setItem('dst_pocket_vibrate', e.target.checked ? '1' : '0');
+      showToast(e.target.checked ? '📳 触屏振动已开启' : '📴 触屏振动已关闭');
+    };
+  }
+
   document.getElementById('btn-close-menu').onclick = () => {
     modal.classList.add('hidden');
   };
@@ -11002,6 +11101,27 @@ function setupInputs() {
       try {
         saveGame(0);
       } catch (err) {}
+    }
+  });
+
+  // Initial UI sync for Sound & Vibration toggles
+  const initToggleSfx = document.getElementById('toggle-sfx');
+  if (initToggleSfx) initToggleSfx.checked = state.settings.sfx;
+
+  const initToggleVibrate = document.getElementById('toggle-vibrate');
+  if (initToggleVibrate) initToggleVibrate.checked = state.settings.vibrate;
+
+  // Visibility Change: Auto pause/resume WebAudio & simulation when phone is locked or tab hidden
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) {
+      if (audio.ctx && audio.ctx.state === 'running') {
+        audio.ctx.suspend().catch(() => {});
+      }
+    } else {
+      lastTime = performance.now();
+      if (audio.enabled && audio.ctx && audio.ctx.state === 'suspended') {
+        audio.ctx.resume().catch(() => {});
+      }
     }
   });
 

@@ -8637,11 +8637,16 @@ function setupInputs() {
   // Menu & 3-Tier Difficulty Settings
   const btnMenu = document.getElementById('btn-menu');
   if (btnMenu) {
-    btnMenu.onclick = (e) => {
-      if (e) e.preventDefault();
+    const triggerMenu = (e) => {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
       audio.init();
       openMenuUI();
     };
+    btnMenu.onclick = triggerMenu;
+    btnMenu.addEventListener('pointerdown', triggerMenu);
   }
 
   // Equipment Slots Click to inspect / unequip

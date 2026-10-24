@@ -605,7 +605,7 @@ body, html {
 .pop-btn.danger { background: #5a1d1d; border-color: #923232; color: #ffcccc; }
 
 /* Crock Pot & Container Modals */
-#crockpot-modal, #chest-modal, #map-modal, #chester-modal, #save-load-modal, #diary-modal {
+#crockpot-modal, #chest-modal, #map-modal, #chester-modal, #save-load-modal, #diary-modal, #menu-modal {
   position: absolute;
   top: 0;
   left: 0;

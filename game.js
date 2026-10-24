@@ -391,6 +391,12 @@ const ITEMS = {
   gland: { id: 'gland', name: '蜘蛛腺体', icon: '💧', desc: '有刺激性的黏液腺体，可制成药膏。', stack: 40, food: { hunger: 0, hp: 8, sanity: -3 } },
   deerclops_eye: { id: 'deerclops_eye', name: '巨鹿眼球', icon: '👁️', desc: '击杀冬季霸主掉落的战利品，制成眼球伞。', stack: 1 },
 
+  // --- Primal Energy Intellect (源能智慧体) Artifacts ---
+  archon_beacon_item: { id: 'archon_beacon_item', name: '源能信标', icon: '🌌📡', desc: '撕裂维度法则的古代遗物！放置将引动降临【源能智慧体】！', isPlaceable: 'archon_beacon' },
+  primal_core: { id: 'primal_core', name: '源能核心', icon: '💎✨', desc: '源能智慧体体内凝聚的法则核心，蕴含重塑世界的澎湃源能。', stack: 10 },
+  reality_shard: { id: 'reality_shard', name: '法则碎片', icon: '🔮🌟', desc: '撕裂时空获得的法则碎片，随身携带散发永恒微光并持续滋润理智。', stack: 10, isLight: true, sanityRegen: 1.2 },
+  crystal_amulet: { id: 'crystal_amulet', name: '晶源护符', icon: '📿🔷', desc: '源能结晶与铥矿炼成！免疫晶质减速，受击自动展开晶核护盾！', equipSlot: 'amulet', durability: 300, armorDefense: 0.85 },
+
   // Foods (with freshness decay, max Freshness = 180s in-game)
   berry: { id: 'berry', name: '生浆果', icon: '🫐', desc: '新鲜酸甜的浆果。+10饥饿。', stack: 40, maxFresh: 180, food: { hunger: 10, hp: 1, sanity: 0, cookable: 'berry_cooked', fruitVal: 1 } },
   berry_cooked: { id: 'berry_cooked', name: '烤浆果', icon: '🥧', desc: '烘烤后的香甜浆果。+18饥饿，+3生命。', stack: 40, maxFresh: 120, food: { hunger: 18, hp: 3, sanity: 1, fruitVal: 1 } },
@@ -704,7 +710,11 @@ const RECIPES = [
   { id: 'star_caller_staff', cat: 'magic', tier: 4, name: '呼星者法杖', icon: '🪄🟡', req: { yellow_gem: 2, living_log: 2, nightmare_fuel: 4 }, desc: '召唤地面长明矮人恒星' },
   { id: 'codex_umbra', cat: 'magic', tier: 2, name: '暗影秘典', icon: '📖🟣', req: { nightmare_fuel: 6, boards: 2 }, desc: '召唤暗影伐木/矿工/角斗士傀儡' },
   { id: 'eyebrella', cat: 'survival', tier: 2, name: '眼球伞', icon: '👁️☂️', req: { deerclops_eye: 1, twig: 6, silk: 4 }, desc: '100%全防水全防雷眼球伞' },
-  { id: 'bearger_vest', cat: 'survival', tier: 3, name: '冬眠熊皮背心', icon: '🦺🐻', req: { bearger_fur: 1, rope: 3, beefalo_wool: 4 }, desc: '终极保暖抗冻神器' }
+  { id: 'bearger_vest', cat: 'survival', tier: 3, name: '冬眠熊皮背心', icon: '🦺🐻', req: { bearger_fur: 1, rope: 3, beefalo_wool: 4 }, desc: '终极保暖抗冻神器' },
+
+  // --- Primal Energy Intellect Recipes ---
+  { id: 'archon_beacon_item', cat: 'magic', tier: 3, name: '源能信标', icon: '🌌📡', req: { thulecite: 3, nightmare_fuel: 4, purple_gem: 2 }, desc: '引动降临拥有强化学习模型的宇宙霸主【源能智慧体】' },
+  { id: 'crystal_amulet', cat: 'magic', tier: 4, name: '晶源护符', icon: '📿🔷', req: { primal_core: 1, thulecite: 4, gold: 6 }, desc: '免疫晶质减速与极寒，受击生成晶源防护罩' }
 ];
 
 // --- 4. Main Game State & Survival Diary ---
@@ -1742,6 +1752,32 @@ function deployStructure(type, x, y, rotation) {
       lightRadius: 185
     });
     showToast('🏮☀️ 构筑了【日耀感光路灯】！入夜自动绽放极光护盾，永不熄灭！');
+  } else if (type === 'archon_beacon') {
+    state.entities.push({ type: 'archon_beacon', x, y, radius: 30, rotation: rot });
+    // Summon Boss: 源能智慧体 (Primal Energy Intellect)
+    state.entities.push({
+      type: 'primal_intellect',
+      name: '源能智慧体',
+      x: x + 80,
+      y: y + 80,
+      originX: x,
+      originY: y,
+      hp: 3000,
+      maxHp: 3000,
+      shield: 300,
+      maxShield: 1000,
+      energy: 60,
+      maxEnergy: 100,
+      speed: 140,
+      phase: 1,
+      decisionTimer: 0.5,
+      forcefieldTimer: 0,
+      cooldowns: [0, 0, 0, 0, 0, 0, 0, 0],
+      animTick: 0
+    });
+    audio.playBossRoar();
+    state.screenFlash = 0.45;
+    showToast('🌌 空间维度震颤撕裂！【源能智慧体】降临世界，启动领地塑造强化模型！');
   }
 }
 
@@ -5522,7 +5558,110 @@ function update(dt) {
           ent.y += Math.sin(pa) * 100 * dt;
         }
       }
-    } else if (ent.type === 'werepig') {
+    } else if (ent.type === 'primal_crystal') {
+    // Glowing Terraformed Primal Crystal
+    ctx.fillStyle = '#00e5ff';
+    ctx.beginPath();
+    ctx.moveTo(0, -18); ctx.lineTo(14, -6); ctx.lineTo(10, 14); ctx.lineTo(-10, 14); ctx.lineTo(-14, -6);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#e0f7fa';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+    ctx.beginPath();
+    ctx.moveTo(0, -18); ctx.lineTo(6, -2); ctx.lineTo(0, 10); ctx.lineTo(-6, -2);
+    ctx.closePath();
+    ctx.fill();
+  } else if (ent.type === 'primal_pylon') {
+    // Resonant Energy Pylon
+    ctx.fillStyle = '#263238';
+    ctx.fillRect(-12, -36, 24, 40);
+    const pulse = Math.sin(Date.now() / 150) * 0.3 + 0.7;
+    ctx.fillStyle = `rgba(179, 136, 255, ${pulse})`;
+    ctx.beginPath(); ctx.arc(0, -16, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#b388ff';
+    ctx.beginPath();
+    ctx.moveTo(0, -48); ctx.lineTo(14, -38); ctx.lineTo(-14, -38);
+    ctx.closePath();
+    ctx.fill();
+  } else if (ent.type === 'energy_vortex') {
+    // Swirling Gravity Vortex
+    const rot = (Date.now() / 100) % (Math.PI * 2);
+    ctx.save();
+    ctx.rotate(rot);
+    for (let i = 0; i < 4; i++) {
+      ctx.rotate(Math.PI / 2);
+      ctx.fillStyle = 'rgba(224, 64, 251, 0.5)';
+      ctx.beginPath();
+      ctx.ellipse(20, 0, 24, 6, 0.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = '#000000';
+    ctx.beginPath(); ctx.arc(0, 0, 12, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  } else if (ent.type === 'archon_beacon') {
+    // Archon Summoning Beacon
+    ctx.fillStyle = '#37474f';
+    ctx.beginPath(); ctx.ellipse(0, 0, 22, 14, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#00e5ff';
+    ctx.beginPath(); ctx.arc(0, -8, 8, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#80deea';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  } else if (ent.type === 'primal_intellect') {
+    // --- 源能智慧体 (Primal Energy Intellect) ---
+    const tick = Date.now() / 200;
+    const isEnraged = ent.phase === 3;
+    const coreCol = isEnraged ? '#ff1744' : (ent.phase === 2 ? '#d500f9' : '#00e5ff');
+
+    // Orbiting Geometric Energy Rings
+    ctx.save();
+    ctx.strokeStyle = coreCol;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.ellipse(0, -28, 42, 16, tick, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(0, -28, 42, 16, -tick * 1.3, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Central Floating Polyhedral Core
+    const pulseR = 26 + Math.sin(tick * 2) * 3;
+    const grad = ctx.createRadialGradient(0, -28, 4, 0, -28, pulseR);
+    grad.addColorStop(0, '#ffffff');
+    grad.addColorStop(0.4, coreCol);
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath(); ctx.arc(0, -28, pulseR, 0, Math.PI * 2); ctx.fill();
+
+    // Sacred Geometric Inner Diamond
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(0, -44); ctx.lineTo(14, -28); ctx.lineTo(0, -12); ctx.lineTo(-14, -28);
+    ctx.closePath();
+    ctx.fill();
+
+    // Overhead Boss Health & Shield Bar
+    const barW = 70;
+    const barH = 6;
+    const barY = -62;
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillRect(-barW / 2, barY, barW, barH);
+    const hpRatio = Math.max(0, ent.hp / ent.maxHp);
+    ctx.fillStyle = isEnraged ? '#ff1744' : '#00e676';
+    ctx.fillRect(-barW / 2, barY, barW * hpRatio, barH);
+    if (ent.shield && ent.shield > 0) {
+      const shieldRatio = Math.min(1.0, ent.shield / (ent.maxShield || 1000));
+      ctx.fillStyle = 'rgba(0, 229, 255, 0.7)';
+      ctx.fillRect(-barW / 2, barY, barW * shieldRatio, 3);
+    }
+    ctx.fillStyle = '#ffd700';
+    ctx.font = 'bold 9px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('🌌 源能智慧体 [RL强化模型]', 0, barY - 4);
+    ctx.restore();
+  } else if (ent.type === 'werepig') {
       const wd = dist(p.x, p.y, ent.x, ent.y);
       if (wd < 260) {
         const wa = Math.atan2(p.y - ent.y, p.x - ent.x);
@@ -6851,6 +6990,193 @@ function updateEntities(dt, isDark) {
           ent.x += Math.cos(ent.circleAngle) * 35 * dt;
           ent.y += Math.sin(ent.circleAngle) * 35 * dt;
         }
+      }
+    }
+
+    // --- Primal Energy Intellect (源能智慧体 - Reinforcement Learning Boss) ---
+    if (ent.type === 'primal_intellect') {
+      ent.animTick = (ent.animTick || 0) + dt;
+      ent.decisionTimer = (ent.decisionTimer || 0) - dt;
+
+      // Passive territory energy generation
+      const crystals = state.entities.filter(e => e.type === 'primal_crystal');
+      const pylons = state.entities.filter(e => e.type === 'primal_pylon');
+      const territoryBonus = crystals.length * 0.25 + pylons.length * 1.5;
+      ent.energy = Math.min(ent.maxEnergy || 100, (ent.energy || 50) + (3.0 + territoryBonus) * dt);
+
+      // Cooldown decay
+      ent.cooldowns = ent.cooldowns || [0, 0, 0, 0, 0, 0, 0, 0];
+      for (let i = 0; i < ent.cooldowns.length; i++) {
+        if (ent.cooldowns[i] > 0) ent.cooldowns[i] = Math.max(0, ent.cooldowns[i] - dt);
+      }
+
+      // Phase update
+      ent.phase = (ent.hp < 1000) ? 3 : ((ent.hp < 2000) ? 2 : 1);
+
+      // Deep Reinforcement Learning Decision Loop
+      if (ent.decisionTimer <= 0 && window.PrimalIntellectAI) {
+        ent.decisionTimer = 0.8;
+        const decision = window.PrimalIntellectAI.decide(ent, p, state.entities);
+        const act = decision.action;
+
+        if (act === 0) { // REPOSITION_TACTICAL
+          const a = Math.atan2(p.y - ent.y, p.x - ent.x);
+          const d = dist(ent.x, ent.y, p.x, p.y);
+          const moveAngle = (d < 180) ? a + Math.PI : ((d > 280) ? a : a + Math.PI / 2);
+          ent.x += Math.cos(moveAngle) * ent.speed * 0.8;
+          ent.y += Math.sin(moveAngle) * ent.speed * 0.8;
+        } else if (act === 1 && ent.energy >= 15 && ent.cooldowns[1] <= 0) { // TERRAFORM_CRYSTAL
+          ent.energy -= 15;
+          ent.cooldowns[1] = 2.5;
+          const targetX = (Math.random() < 0.6) ? p.x : ent.x;
+          const targetY = (Math.random() < 0.6) ? p.y : ent.y;
+          for (let ox = -45; ox <= 45; ox += 45) {
+            for (let oy = -45; oy <= 45; oy += 45) {
+              if (crystals.length < 35 && !crystals.some(c => dist(c.x, c.y, targetX + ox, targetY + oy) < 35)) {
+                state.entities.push({ type: 'primal_crystal', x: targetX + ox, y: targetY + oy, life: 120 });
+                createHitParticles(targetX + ox, targetY + oy, '#00e5ff');
+              }
+            }
+          }
+          audio.playMagic();
+          showToast('💎【源能智慧体】执行领地塑造：晶质地表扩散！');
+        } else if (act === 2 && ent.energy >= 25 && ent.cooldowns[2] <= 0 && pylons.length < 4) { // ERECT_PYLON
+          ent.energy -= 25;
+          ent.cooldowns[2] = 4.5;
+          const angle = Math.random() * Math.PI * 2;
+          const px = ent.x + Math.cos(angle) * 150;
+          const py = ent.y + Math.sin(angle) * 150;
+          state.entities.push({ type: 'primal_pylon', x: px, y: py, hp: 450, maxHp: 450 });
+          createHitParticles(px, py, '#b388ff');
+          audio.playThunder();
+          showToast('⚡【源能智慧体】塑造共鸣能源塔！');
+        } else if (act === 3 && ent.energy >= 20 && ent.cooldowns[3] <= 0) { // SUMMON_VORTEX
+          ent.energy -= 20;
+          ent.cooldowns[3] = 4.0;
+          state.entities.push({ type: 'energy_vortex', x: p.x, y: p.y, duration: 5.0 });
+          audio.playLaser();
+          showToast('🌀【源能智慧体】撕裂空间重力漩涡！');
+        } else if (act === 4 && ent.energy >= 20 && ent.cooldowns[4] <= 0 && pylons.length >= 2) { // SHAPE_FORCEFIELD
+          ent.energy -= 20;
+          ent.cooldowns[4] = 3.5;
+          ent.forcefieldTimer = 2.5;
+          audio.playLaser();
+          showToast('⚡【源能智慧体】激活能源塔激光矩阵屏障！');
+        } else if (act === 5 && ent.cooldowns[5] <= 0) { // ENERGY_SIPHON
+          ent.cooldowns[5] = 5.0;
+          const siphonGain = crystals.length * 8 + pylons.length * 45;
+          ent.shield = Math.min(ent.maxShield || 1000, (ent.shield || 0) + siphonGain);
+          ent.energy = Math.min(ent.maxEnergy || 100, ent.energy + 25);
+          createHitParticles(ent.x, ent.y, '#ffd700');
+          audio.playChester();
+          showToast('🛡️【源能智慧体】虹吸领地源能，极速充能护盾！');
+        } else if (act === 6 && ent.energy >= 25 && ent.cooldowns[6] <= 0) { // DIMENSIONAL_WARP
+          ent.energy -= 25;
+          ent.cooldowns[6] = 4.0;
+          const a = Math.atan2(p.y - ent.y, p.x - ent.x);
+          createHitParticles(ent.x, ent.y, '#e040fb');
+          ent.x = p.x + Math.cos(a + Math.PI) * 160;
+          ent.y = p.y + Math.sin(a + Math.PI) * 160;
+          createHitParticles(ent.x, ent.y, '#e040fb');
+          audio.playBossRoar();
+          if (dist(ent.x, ent.y, p.x, p.y) < 120) {
+            p.hp -= 35;
+            showToast('🌌【源能智慧体】法则瞬移突袭！(-35 HP)');
+          }
+        } else if (act === 7 && ent.energy >= 40 && ent.cooldowns[7] <= 0 && pylons.length >= 1) { // PRIMAL_OVERLOAD
+          ent.energy -= 40;
+          ent.cooldowns[7] = 6.0;
+          state.screenFlash = 0.35;
+          audio.playThunder();
+          let hitPlayer = (dist(ent.x, ent.y, p.x, p.y) < 240);
+          pylons.forEach(py => {
+            if (dist(py.x, py.y, p.x, p.y) < 200) hitPlayer = true;
+          });
+          if (hitPlayer) {
+            p.hp -= 50;
+            showToast('💥【源能智慧体】全领地源能超载爆发！(-50 HP)');
+          } else {
+            showToast('💥【源能智慧体】全领地源能超载爆发！');
+          }
+        }
+      }
+
+      // Forcefield Laser Barrier crossfire damage
+      if (ent.forcefieldTimer && ent.forcefieldTimer > 0) {
+        ent.forcefieldTimer -= dt;
+        for (let i = 0; i < pylons.length; i++) {
+          for (let j = i + 1; j < pylons.length; j++) {
+            const p1 = pylons[i], p2 = pylons[j];
+            const lineLen = dist(p1.x, p1.y, p2.x, p2.y);
+            if (lineLen < 420) {
+              const cross = Math.abs((p2.y - p1.y) * p.x - (p2.x - p1.x) * p.y + p2.x * p1.y - p2.y * p1.x);
+              const lineDist = cross / lineLen;
+              if (lineDist < 35) {
+                p.hp -= 20 * dt;
+                createHitParticles(p.x, p.y, '#00e5ff');
+              }
+            }
+          }
+        }
+      }
+
+      // Check Boss Defeat
+      if (ent.hp <= 0) {
+        ent.dead = true;
+        dropWorldItem('primal_core', ent.x, ent.y, 1);
+        dropWorldItem('reality_shard', ent.x + 20, ent.y, 2);
+        dropWorldItem('thulecite', ent.x - 20, ent.y, 4);
+        dropWorldItem('purple_gem', ent.x, ent.y + 20, 2);
+        createHitParticles(ent.x, ent.y, '#00e5ff');
+        createHitParticles(ent.x, ent.y, '#ffd700');
+        showToast('🌌【源能智慧体】核心坍缩解体！荒野重归寂静，掉落了【源能核心】与【法则碎片】！');
+        if (state.diary) {
+          state.diary.bossesDefeated = (state.diary.bossesDefeated || 0) + 1;
+          state.diary.milestones.slay_primal_intellect = true;
+        }
+      }
+    }
+
+    // Primal Crystal (Terraformed ground)
+    if (ent.type === 'primal_crystal') {
+      ent.life = (ent.life || 120) - dt;
+      if (ent.life <= 0) ent.dead = true;
+      if (dist(ent.x, ent.y, p.x, p.y) < 45) {
+        const hasAmulet = (p.equipped.amulet?.id === 'crystal_amulet');
+        if (!hasAmulet) {
+          p.speed = (CHARACTERS[state.character]?.speed || 165) * 0.7;
+          p.hp -= 4 * dt;
+        } else {
+          if (Math.random() < dt * 2) createHitParticles(p.x, p.y, '#00e5ff');
+        }
+      }
+    }
+
+    // Energy Vortex (Gravity singularity)
+    if (ent.type === 'energy_vortex') {
+      ent.duration = (ent.duration || 5.0) - dt;
+      if (ent.duration <= 0) ent.dead = true;
+      const d = dist(ent.x, ent.y, p.x, p.y);
+      if (d < 180) {
+        const pullSpeed = 90 * (1 - d / 180);
+        const a = Math.atan2(ent.y - p.y, ent.x - p.x);
+        p.x += Math.cos(a) * pullSpeed * dt;
+        p.y += Math.sin(a) * pullSpeed * dt;
+        if (d < 65) {
+          p.hp -= 15 * dt;
+          createHitParticles(p.x, p.y, '#e040fb');
+        }
+      }
+    }
+
+    // Primal Pylon
+    if (ent.type === 'primal_pylon') {
+      if (ent.hp <= 0) {
+        ent.dead = true;
+        dropWorldItem('thulecite', ent.x, ent.y, 1);
+        dropWorldItem('purple_gem', ent.x, ent.y, 1);
+        createHitParticles(ent.x, ent.y, '#ffd700');
+        showToast('💥 摧毁了源能共鸣能源塔！');
       }
     }
 
@@ -8394,6 +8720,69 @@ function render() {
   }
 
   ctx.restore();
+  // Render Laser Forcefields between active Pylons
+  const pylonsForLaser = state.entities.filter(e => e.type === 'primal_pylon');
+  const bossIntellect = state.entities.find(e => e.type === 'primal_intellect');
+  if (pylonsForLaser.length >= 2 && bossIntellect && bossIntellect.forcefieldTimer > 0) {
+    ctx.save();
+    ctx.strokeStyle = '#00e5ff';
+    ctx.lineWidth = 3;
+    ctx.setLineDash([10, 5]);
+    ctx.lineDashOffset = -Date.now() / 25;
+    ctx.shadowColor = '#00e5ff';
+    ctx.shadowBlur = 12;
+    for (let i = 0; i < pylonsForLaser.length; i++) {
+      for (let j = i + 1; j < pylonsForLaser.length; j++) {
+        const p1 = pylonsForLaser[i], p2 = pylonsForLaser[j];
+        if (dist(p1.x, p1.y, p2.x, p2.y) < 420) {
+          ctx.beginPath();
+          ctx.moveTo(p1.x - state.camera.x, p1.y - state.camera.y - 16);
+          ctx.lineTo(p2.x - state.camera.x, p2.y - state.camera.y - 16);
+          ctx.stroke();
+        }
+      }
+    }
+    ctx.restore();
+  }
+
+  // Top Screen Celestial Boss HUD Bar when near 源能智慧体
+  if (bossIntellect && dist(bossIntellect.x, bossIntellect.y, state.player.x, state.player.y) < 700) {
+    ctx.save();
+    const hudW = Math.min(380, canvas.width - 40);
+    const hudX = (canvas.width - hudW) / 2;
+    const hudY = 32;
+
+    ctx.fillStyle = 'rgba(10, 14, 26, 0.88)';
+    ctx.strokeStyle = '#00e5ff';
+    ctx.lineWidth = 1.5;
+    ctx.fillRect(hudX, hudY, hudW, 32);
+    ctx.strokeRect(hudX, hudY, hudW, 32);
+
+    const hpPct = Math.max(0, bossIntellect.hp / bossIntellect.maxHp);
+    ctx.fillStyle = (bossIntellect.phase === 3) ? '#ff1744' : '#00e676';
+    ctx.fillRect(hudX + 4, hudY + 14, (hudW - 8) * hpPct, 8);
+
+    if (bossIntellect.shield > 0) {
+      const shieldPct = Math.min(1.0, bossIntellect.shield / (bossIntellect.maxShield || 1000));
+      ctx.fillStyle = 'rgba(0, 229, 255, 0.8)';
+      ctx.fillRect(hudX + 4, hudY + 14, (hudW - 8) * shieldPct, 3);
+    }
+
+    const energyPct = Math.max(0, (bossIntellect.energy || 0) / (bossIntellect.maxEnergy || 100));
+    ctx.fillStyle = '#ffd700';
+    ctx.fillRect(hudX + 4, hudY + 24, (hudW - 8) * energyPct, 3);
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 11px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText('🌌 源能智慧体 (Primal Energy Intellect) · 强化深度模型', hudX + 8, hudY + 11);
+    ctx.textAlign = 'right';
+    const phaseNames = { 1: '一阶·虚空展开', 2: '二阶·共鸣矩阵', 3: '三阶·维度领主' };
+    ctx.fillStyle = '#ffd700';
+    ctx.fillText(`${phaseNames[bossIntellect.phase] || ''} [${Math.round(bossIntellect.hp)}/${bossIntellect.maxHp}]`, hudX + hudW - 8, hudY + 11);
+    ctx.restore();
+  }
+
   renderLighting();
 
   if (state.screenFlash > 0) {

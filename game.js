@@ -506,6 +506,11 @@ const ITEMS = {
   sprinkler_item: { id: 'sprinkler_item', name: '自动喷灌机', icon: '🚿💦', desc: '360度旋转喷灌！滋润农田加速作物成长，夏季防止农作物枯萎与自燃。', isPlaceable: 'sprinkler' },
   houndius_shootius_item: { id: 'houndius_shootius_item', name: '远古眼球激光塔', icon: '🏰👁️', desc: '远古伪科学守卫！自动锁定敌对怪物发射超视距高能毁灭射线！', isPlaceable: 'houndius_shootius' },
   scaled_furnace_item: { id: 'scaled_furnace_item', name: '龙鳞壁炉', icon: '🔥🏮', desc: '永不熄灭的龙鳞壁炉！散发永恒光明与融融暖意，冬日庇护所核心设施。', isPlaceable: 'scaled_furnace' },
+  auto_feeder_item: { id: 'auto_feeder_item', name: '智能牲畜饲料槽', icon: '🌾🪵', desc: '全自动牧场养殖设施！自动投喂周围皮弗娄牛与猪人，持续提升驯化度与忠诚度。', isPlaceable: 'auto_feeder' },
+  solar_lantern_item: { id: 'solar_lantern_item', name: '日耀感光路灯', icon: '🏮☀️', desc: '白天吸收日光蓄能，入夜全自动绽放180px永恒极光结界！免添燃料绝对防御查理！', isPlaceable: 'solar_lantern' },
+  beefalo_bell: { id: 'beefalo_bell', name: '皮弗娄牛铃铛', icon: '🔔🐂', desc: '轻摇铜铃与皮弗娄牛缔结永恒灵魂契约！使牛牛寸步不离跟随主人护卫与随时骑乘。', equipSlot: 'hand', durability: 50 },
+  weather_pain: { id: 'weather_pain', name: '天气之痛', icon: '🌪️🪶', desc: '春季莫斯鹅羽绒黑科技！挥动召唤呼啸狂风龙卷，追踪狂暴撕裂敌人并粉碎树木矿石！', equipSlot: 'hand', durability: 15, isStaff: 'tornado' },
+  luxury_fan: { id: 'luxury_fan', name: '豪华羽毛风扇', icon: '🪭✨', desc: '莫斯鹅羽绒精制神物！挥动掀起清凉飓风，瞬间扑灭周围全域烈火并将体温骤降至清爽20度！', equipSlot: 'hand', durability: 15 },
 
   // --- Simulation & Taming ---
   beefalo_brush: { id: 'beefalo_brush', name: '牛毛刷', icon: '🪮🐂', desc: '每日梳理皮弗娄牛毛发，大幅提升服从度与驯化速度，并掉落额外优质牛毛。', equipSlot: 'hand', durability: 75 },
@@ -625,6 +630,11 @@ const RECIPES = [
   { id: 'sprinkler_item', cat: 'science', tier: 2, name: '自动喷灌机', icon: '🚿💦', req: { gears: 1, cut_stone: 2, ice: 6 }, desc: '360度喷灌灌溉农田，防枯萎防自燃' },
   { id: 'houndius_shootius_item', cat: 'magic', tier: 4, name: '远古眼球激光塔', icon: '🏰👁️', req: { deerclops_eye: 1, guardian_horn: 1, thulecite: 5 }, desc: '全自动超视距激光守卫' },
   { id: 'scaled_furnace_item', cat: 'structures', tier: 3, name: '龙鳞壁炉', icon: '🔥🏮', req: { dragon_scales: 1, charcoal: 6, cut_stone: 4 }, desc: '永不熄灭的永恒光明与融融暖炉' },
+  { id: 'auto_feeder_item', cat: 'structures', tier: 1, name: '智能牲畜饲料槽', icon: '🌾🪵', req: { boards: 4, rope: 2, manure: 2 }, desc: '全自动投喂周围皮弗娄牛与猪人' },
+  { id: 'solar_lantern_item', cat: 'light', tier: 2, name: '日耀感光路灯', icon: '🏮☀️', req: { gold: 2, cut_stone: 2, lightbulb: 1 }, desc: '全自动昼夜感应发光，永恒庇护' },
+  { id: 'beefalo_bell', cat: 'survival', tier: 1, name: '皮弗娄牛铃铛', icon: '🔔🐂', req: { flint: 2, rope: 1, gold: 2 }, desc: '与皮弗娄牛建立神圣灵魂契约永久跟随' },
+  { id: 'weather_pain', cat: 'magic', tier: 3, name: '天气之痛', icon: '🌪️🪶', req: { down_feather: 6, tentacle_spots: 1, gears: 1 }, desc: '发射旋风龙卷追踪敌怪并伐木碎石' },
+  { id: 'luxury_fan', cat: 'survival', tier: 2, name: '豪华羽毛扇', icon: '🪭✨', req: { down_feather: 5, boards: 2, rope: 2 }, desc: '强力扑灭大火并极速降温' },
 
   // --- Simulation & Taming ---
   { id: 'beefalo_brush', cat: 'survival', tier: 1, name: '牛毛刷', icon: '🪮🐂', req: { twig: 2, beefalo_wool: 3, rope: 1 }, desc: '日常梳理提升牛牛驯化与服从' },
@@ -934,7 +944,8 @@ function addToPlayer(itemId, count = 1, options = {}) {
   }
 
   // Try stack into backpack
-  if (state.player.equipped.body && state.player.equipped.body.id === 'backpack') {
+  const bodyItemDefForRem = state.player.equipped.body ? ITEMS[state.player.equipped.body.id] : null;
+  if (bodyItemDefForRem && bodyItemDefForRem.backpackSlots) {
     for (let i = 0; i < state.player.backpack.length; i++) {
       const slot = state.player.backpack[i];
       if (slot && slot.id === itemId && slot.count < def.stack) {
@@ -964,8 +975,9 @@ function addToPlayer(itemId, count = 1, options = {}) {
     }
   }
 
-  // Find empty slot in backpack
-  if (state.player.equipped.body && state.player.equipped.body.id === 'backpack') {
+  // Find empty slot in backpack (dynamic for regular backpack and 14-slot krampus_sack)
+  const bodyItemDef = state.player.equipped.body ? ITEMS[state.player.equipped.body.id] : null;
+  if (bodyItemDef && bodyItemDef.backpackSlots) {
     for (let i = 0; i < state.player.backpack.length; i++) {
       if (!state.player.backpack[i]) {
         state.player.backpack[i] = {
@@ -990,7 +1002,8 @@ function countTotalItem(itemId) {
   for (const s of state.player.inventory) {
     if (s && s.id === itemId) total += s.count;
   }
-  if (state.player.equipped.body && state.player.equipped.body.id === 'backpack') {
+  const bodyItemDefForCount = state.player.equipped.body ? ITEMS[state.player.equipped.body.id] : null;
+  if (bodyItemDefForCount && bodyItemDefForCount.backpackSlots) {
     for (const s of state.player.backpack) {
       if (s && s.id === itemId) total += s.count;
     }
@@ -1049,11 +1062,19 @@ function updateInventoryUI() {
     container.appendChild(div);
   });
 
-  // Backpack Bar
+  // Backpack Bar (Dynamic for 8-slot backpack & 14-slot krampus_sack)
   const backpackBar = document.getElementById('backpack-bar');
   const backpackContainer = document.getElementById('backpack-slots');
-  if (state.player.equipped.body && state.player.equipped.body.id === 'backpack') {
+  const equippedBodyDef = state.player.equipped.body ? ITEMS[state.player.equipped.body.id] : null;
+  if (equippedBodyDef && equippedBodyDef.backpackSlots) {
+    const targetSlots = equippedBodyDef.backpackSlots;
+    while (state.player.backpack.length < targetSlots) state.player.backpack.push(null);
+    if (state.player.backpack.length > targetSlots) state.player.backpack.length = targetSlots;
     backpackBar.classList.remove('hidden');
+    const titleEl = backpackBar.querySelector('.backpack-title');
+    if (titleEl) {
+      titleEl.innerText = equippedBodyDef.id === 'krampus_sack' ? '🎒 坎普斯背包 (+14格顶级容量)' : '🎒 旅行背包 (+8格容量)';
+    }
     backpackContainer.innerHTML = '';
     state.player.backpack.forEach((slot, idx) => {
       const div = createSlotElement(slot, 'backpack', idx);
@@ -1180,6 +1201,12 @@ function onSlotClicked(source, index) {
     btnUse.style.display = 'inline-block';
   } else if (slot.id === 'star_caller_staff') {
     btnUse.innerText = '召唤矮人恒星';
+    btnUse.style.display = 'inline-block';
+  } else if (slot.id === 'beefalo_bell') {
+    btnUse.innerText = '摇铃契约绑定';
+    btnUse.style.display = 'inline-block';
+  } else if (slot.id === 'luxury_fan') {
+    btnUse.innerText = '扇起飓风降温灭火';
     btnUse.style.display = 'inline-block';
   } else if (def.food) {
     btnUse.innerText = '食用';
@@ -1352,6 +1379,62 @@ function useCurrentItem(source, index) {
       showToast('呼星法杖耗尽极光威能消散！');
     } else {
       showToast(`🌟 从苍穹引落炽热的【矮人恒星】！持续发光放热3分钟！剩余耐久: ${slot.durability}`);
+    }
+    closePopover();
+    updateInventoryUI();
+    return;
+  }
+
+  if (slot.id === 'beefalo_bell') {
+    let nearestBeefalo = null;
+    let minD = 220;
+    for (const b of state.entities) {
+      if (b.type === 'beefalo') {
+        const d = dist(p.x, p.y, b.x, b.y);
+        if (d < minD) {
+          minD = d;
+          nearestBeefalo = b;
+        }
+      }
+    }
+    if (!nearestBeefalo) {
+      showToast('🔔 附近220px内未发现皮弗娄牛！靠近牛群后再轻摇铜铃！');
+      return;
+    }
+    audio.playMagic();
+    createHitParticles(nearestBeefalo.x, nearestBeefalo.y, '#ffd54f');
+    createHitParticles(p.x, p.y, '#ffd54f');
+    nearestBeefalo.isBonded = true;
+    nearestBeefalo.domestication = 100;
+    nearestBeefalo.obedience = 100;
+    nearestBeefalo.target = p;
+    nearestBeefalo.name = '契约皮弗娄牛';
+    slot.durability = (slot.durability || 50) - 1;
+    showToast('🔔 悠扬铃音共鸣！皮弗娄牛与你缔结了灵魂血契！成为忠诚护卫与全时坐骑！');
+    closePopover();
+    updateInventoryUI();
+    return;
+  }
+
+  if (slot.id === 'luxury_fan') {
+    audio.playWind();
+    slot.durability = (slot.durability !== undefined ? slot.durability : 15) - 1;
+    let firesOut = 0;
+    for (const ent of state.entities) {
+      if (ent.burning && dist(p.x, p.y, ent.x, ent.y) < 380) {
+        ent.burning = 0;
+        firesOut++;
+        createHitParticles(ent.x, ent.y, '#81d4fa');
+      }
+    }
+    p.temperature = 20;
+    createHitParticles(p.x, p.y, '#b2ebf2');
+    createHitParticles(p.x, p.y, '#e0f7fa');
+    if (slot.durability <= 0) {
+      slots[index] = null;
+      showToast('豪华羽毛风扇羽毛耗尽消散！');
+    } else {
+      showToast(`🪭 呼啸清爽狂风席卷！扑灭了${firesOut}处大火，体温骤降至清凉20°C！剩余耐久: ${slot.durability}`);
     }
     closePopover();
     updateInventoryUI();
@@ -1573,6 +1656,23 @@ function deployStructure(type, x, y, rotation) {
       ready: false
     });
     showToast('🍄🪵 放置了【蘑菇栽培木桩】！靠近即可播种各色蘑菇！');
+  } else if (type === 'auto_feeder') {
+    state.entities.push({
+      type: 'auto_feeder',
+      x, y, radius: 24, rotation: rot,
+      timer: 0,
+      range: 220,
+      feedCount: 30
+    });
+    showToast('🌾🪵 建造了【智能牲畜饲料槽】！靠近的皮弗娄牛与猪人将自动进食并加深感情！');
+  } else if (type === 'solar_lantern') {
+    state.entities.push({
+      type: 'solar_lantern',
+      x, y, radius: 20, rotation: rot,
+      active: true,
+      lightRadius: 185
+    });
+    showToast('🏮☀️ 构筑了【日耀感光路灯】！入夜自动绽放极光护盾，永不熄灭！');
   }
 }
 
@@ -4162,6 +4262,29 @@ function attackNearest() {
     return;
   }
 
+  // Weather Pain (Tornado spell weapon)
+  if (handItem?.id === 'weather_pain') {
+    audio.playThunder();
+    p.sanity = Math.max(0, p.sanity - 2);
+    p.equipped.hand.durability -= 1;
+    const tAngle = swingAngle;
+    state.entities.push({
+      type: 'tornado',
+      x: p.x + Math.cos(tAngle) * 35,
+      y: p.y + Math.sin(tAngle) * 35,
+      vx: Math.cos(tAngle) * 140,
+      vy: Math.sin(tAngle) * 140,
+      radius: 34,
+      duration: 5.5,
+      timer: 0,
+      spin: 0
+    });
+    showToast('🌪️ 天气之痛引爆苍穹！释放出狂暴撕裂旋风！');
+    if (p.equipped.hand.durability <= 0) p.equipped.hand = null;
+    updateInventoryUI();
+    return;
+  }
+
   // Fire / Ice Staff
   if (isRangedStaff === 'fire') {
     audio.playMagic();
@@ -4295,6 +4418,30 @@ function attackNearest() {
       nearest.submerged = false;
       nearest.idleTimer = 0;
       nearest.target = p;
+    } else if (nearest.type === 'merm') {
+      nearest.target = p;
+      nearest.aggroTimer = 30;
+      for (const m of state.entities) {
+        if (m.type === 'merm' && dist(m.x, m.y, nearest.x, nearest.y) < 280) {
+          m.target = p;
+          m.aggroTimer = 30;
+          createHitParticles(m.x, m.y, '#4db6ac');
+        }
+      }
+      showToast('🐟 沼泽鱼人受袭怒吼！附近所有鱼人手持木叉群起反击！');
+    } else if (nearest.type === 'buzzard') {
+      nearest.target = p;
+      nearest.aggroTimer = 20;
+      showToast('🦅 沙漠秃鹰受惊俯冲利喙猛啄反击！');
+    } else if (nearest.type === 'slurtle') {
+      nearest.hidingTimer = 5.0;
+      nearest.target = p;
+      for (const sl of state.entities) {
+        if (sl.type === 'slurtle' && dist(sl.x, sl.y, nearest.x, nearest.y) < 260) {
+          sl.target = p;
+        }
+      }
+      showToast('🐌 蛞蝓龟缩入坚硬重壳抵御反击！');
     }
 
     // Shadow Horrors teleport on hit!
@@ -4426,6 +4573,18 @@ function attackNearest() {
         if (state.diary.bossesDefeated >= 4) state.diary.milestones.four_seasons = true;
       }
       showToast('★ 诛灭了夏季霸主【龙蝇】！荣获无价龙鳞与红宝石！');
+    } else if (nearest.type === 'klaus') {
+      dropWorldItem('krampus_sack', nearest.x, nearest.y, 1);
+      dropWorldItem('charcoal', nearest.x + 20, nearest.y, 4);
+      dropWorldItem('monster_meat', nearest.x - 20, nearest.y, 4);
+      dropWorldItem('red_gem', nearest.x + 15, nearest.y + 15, 2);
+      dropWorldItem('blue_gem', nearest.x - 15, nearest.y - 15, 2);
+      if (state.diary) state.diary.milestones.slay_klaus = true;
+      showToast('🏆 诛灭了冬季远古凶神【克劳斯】！缴获传奇【坎普斯背包】与远古双色秘宝！');
+    } else if (nearest.type === 'buzzard') {
+      dropWorldItem('morsel', nearest.x, nearest.y, 1);
+      dropWorldItem('jet_feather', nearest.x + 10, nearest.y, 2);
+      showToast('🦅 猎获了沙漠秃鹰！');
     } else if (nearest.type === 'crawling_horror' || nearest.type === 'terrorbeak' || nearest.type === 'shadow_creature') {
       dropWorldItem('nightmare_fuel', nearest.x, nearest.y, 1);
       p.sanity = Math.min(p.maxSanity, p.sanity + 30);
@@ -4567,6 +4726,7 @@ function update(dt) {
       state.beargerSpawned = false;
       state.mooseGooseSpawned = false;
       state.dragonflySpawned = false;
+      state.klausSpawned = false;
       showToast(`季节更迭！进入了【${getSeasonName(state.season)}】`);
     }
     showToast(`黎明降临！存活进入第 ${state.day} 天`);
@@ -4737,6 +4897,9 @@ function update(dt) {
         if (isNight) p.sanity = Math.min(p.maxSanity, p.sanity + dt * 0.6);
         warmThermalStones(dt);
       }
+    } else if (ent.type === 'solar_lantern' && dEnt < 185) {
+      inLight = true;
+      if (isNight) p.sanity = Math.min(p.maxSanity, p.sanity + dt * 0.4);
     } else if (ent.type === 'scaled_furnace' && dEnt < 220) {
       inLight = true;
       if (p.temp < 32) p.temp += dt * 2.5;
@@ -4858,6 +5021,35 @@ function update(dt) {
       audio.playThunder();
       showToast('暴风雪呼啸！冬季严寒霸主【独眼巨鹿】降临！');
     }
+    // Winter: Klaus & Gem Deer (冬季神话Boss)
+    if (state.season === 'winter' && state.seasonDay >= 8 && !state.klausSpawned) {
+      state.klausSpawned = true;
+      state.entities.push({
+        type: 'klaus',
+        x: p.x + 380, y: p.y + 300,
+        hp: 2000, maxHp: 2000,
+        speed: 70, radius: 46,
+        attackCooldown: 0
+      });
+      state.entities.push({
+        type: 'gem_deer',
+        deerType: 'red',
+        x: p.x + 420, y: p.y + 280,
+        hp: 400, maxHp: 400,
+        speed: 80, radius: 26,
+        spellCooldown: 4
+      });
+      state.entities.push({
+        type: 'gem_deer',
+        deerType: 'blue',
+        x: p.x + 360, y: p.y + 340,
+        hp: 400, maxHp: 400,
+        speed: 80, radius: 26,
+        spellCooldown: 4
+      });
+      audio.playBossRoar();
+      showToast('❄️ 沉重锁链与铜铃震响！冬季神话霸主【克劳斯】携红蓝双鹿降临！');
+    }
     // Spring: Moose/Goose
     if (state.season === 'spring' && state.seasonDay >= 8 && !state.mooseGooseSpawned) {
       state.mooseGooseSpawned = true;
@@ -4898,9 +5090,43 @@ function update(dt) {
       ent.regrowTimer -= dt;
       if (ent.regrowTimer <= 0) ent.harvestable = true;
     } else if (ent.type === 'farmplot' && ent.crop && ent.stage < 2) {
-      ent.growTimer += dt;
-      if (ent.growTimer >= 90) ent.stage = 2;
-      else if (ent.growTimer >= 45) ent.stage = 1;
+      let speedMult = 1.0;
+      if (state.weather === 'rain' || ent.watered) speedMult += 0.5;
+      if (ent.fertilized) speedMult += 0.5;
+      ent.growTimer += dt * speedMult;
+      if (ent.growTimer >= 90) {
+        ent.stage = 2;
+        if (ent.watered && ent.fertilized && Math.random() < 0.4) {
+          ent.isGiant = true;
+          showToast(`🌱✨ 悉心照料培育出了稀世【巨型${ITEMS[ent.crop]?.name || '作物'}】！`);
+        }
+      } else if (ent.growTimer >= 45) {
+        ent.stage = 1;
+      }
+    } else if (ent.type === 'auto_feeder') {
+      ent.timer = (ent.timer || 0) + dt;
+      if (ent.timer >= 10) {
+        ent.timer = 0;
+        let fedSomeone = false;
+        for (const animal of state.entities) {
+          if (animal.type === 'beefalo' && dist(ent.x, ent.y, animal.x, animal.y) <= (ent.range || 220)) {
+            animal.domestication = Math.min(100, (animal.domestication || 0) + 3);
+            animal.obedience = Math.min(100, (animal.obedience || 0) + 15);
+            animal.hunger = 100;
+            createHitParticles(animal.x, animal.y, '#81c784');
+            fedSomeone = true;
+          } else if (animal.type === 'pig' && !animal.isWerepig && dist(ent.x, ent.y, animal.x, animal.y) <= (ent.range || 220)) {
+            animal.isFollower = true;
+            animal.followTimer = Math.max(animal.followTimer || 0, 80);
+            createHitParticles(animal.x, animal.y, '#f48fb1');
+            fedSomeone = true;
+          }
+        }
+        if (fedSomeone) {
+          audio.playEat();
+          showToast('🌾 饲料槽自动投喂了周围的牲畜与随从！');
+        }
+      }
     } else if (ent.type === 'drying_rack' && ent.meat && !ent.ready) {
       ent.timer -= dt;
       if (ent.timer <= 0) {
@@ -5086,6 +5312,9 @@ function update(dt) {
           if (p.temp < 30) p.temp += dt * 2.0;
         }
       }
+    } else if (ent.type === 'solar_lantern') {
+      entRadius = 185 + Math.sin(Date.now() / 150) * 3;
+      lightCol = '#fff59d';
     } else if (ent.type === 'scaled_furnace') {
       if (dist(p.x, p.y, ent.x, ent.y) < 200) {
         inLight = true;
@@ -5614,10 +5843,33 @@ function updateCrockpots(dt) {
       if (ent.cookTimer <= 0) {
         ent.cooking = false;
         const resultId = resolveCrockpotDish(ent.ingredients);
-        dropWorldItem(resultId, ent.x, ent.y + 20, 1);
+        // Automated Base Kitchen: Auto-deposit into adjacent icebox or chest within 140px!
+        const nearbyStorage = state.entities.find(c =>
+          (c.type === 'icebox' || c.type === 'chest' || c.type === 'vacuum_chest') &&
+          dist(ent.x, ent.y, c.x, c.y) < 140
+        );
+        let stored = false;
+        if (nearbyStorage && nearbyStorage.items) {
+          for (let i = 0; i < nearbyStorage.items.length; i++) {
+            const s = nearbyStorage.items[i];
+            if (s && s.id === resultId && s.count < (ITEMS[resultId]?.stack || 20)) {
+              s.count += 1;
+              s.freshness = 1.0;
+              stored = true;
+              break;
+            } else if (!s) {
+              nearbyStorage.items[i] = { id: resultId, count: 1, freshness: 1.0 };
+              stored = true;
+              break;
+            }
+          }
+        }
+        if (!stored) {
+          dropWorldItem(resultId, ent.x, ent.y + 20, 1);
+        }
         ent.ingredients = [null, null, null, null];
         audio.playCraft();
-        showToast(`瓦罐烹饪完成了美味的【${ITEMS[resultId].name}】！`);
+        showToast(stored ? `🍲 智能厨房自动化！已将烹饪好的【${ITEMS[resultId].name}】自动入库至保鲜箱！` : `瓦罐烹饪完成了美味的【${ITEMS[resultId].name}】！`);
         if (state.openedCrockpot === ent) {
           document.getElementById('cp-progress-bar').classList.add('hidden');
           document.getElementById('btn-start-cook').classList.remove('hidden');
@@ -6323,6 +6575,53 @@ function updateEntities(dt, isDark) {
       const isSpring = state.season === 'spring';
       ent.inRut = isSpring;
 
+      // Spring Breeding: Adult wild cows can birth cute calves!
+      if (isSpring && !ent.isCalf && Math.random() < 0.002) {
+        state.entities.push({
+          type: 'beefalo_calf',
+          parent: ent,
+          x: ent.x + (Math.random() - 0.5) * 30,
+          y: ent.y + (Math.random() - 0.5) * 30,
+          radius: 18,
+          hp: 200, maxHp: 200,
+          ageDays: 0
+        });
+        showToast('🐂🍼 牛群诞生了一只可爱的小牛犊！');
+      }
+
+      // Bonded Beefalo Soul Companion Logic
+      if (ent.isBonded) {
+        ent.sleeping = false;
+        const distToPlayer = dist(ent.x, ent.y, p.x, p.y);
+        if (distToPlayer > 80) {
+          const followAngle = Math.atan2(p.y - ent.y, p.x - ent.x);
+          ent.x += Math.cos(followAngle) * 125 * dt;
+          ent.y += Math.sin(followAngle) * 125 * dt;
+        }
+        // Protect Wilson: Attack hostile targets near Wilson
+        const nearbyHostile = state.entities.find(h =>
+          ['spider', 'spider_warrior', 'hound', 'frog'].includes(h.type) &&
+          dist(p.x, p.y, h.x, h.y) < 180
+        );
+        if (nearbyHostile) {
+          const dh = dist(ent.x, ent.y, nearbyHostile.x, nearbyHostile.y);
+          const ah = Math.atan2(nearbyHostile.y - ent.y, nearbyHostile.x - ent.x);
+          ent.x += Math.cos(ah) * 130 * dt;
+          ent.y += Math.sin(ah) * 130 * dt;
+          if (dh < 36) {
+            ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+            if (ent.attackCooldown <= 0) {
+              audio.playBeefaloGrunt();
+              nearbyHostile.hp -= 42;
+              createHitParticles(nearbyHostile.x, nearbyHostile.y, '#e74c3c');
+              showToast('🐂 契约皮弗娄牛愤怒角撞护卫击退敌人！');
+              ent.attackCooldown = 1.6;
+            }
+          }
+        }
+        continue;
+      }
+
       const isNight = state.timeInDay >= 85 && state.worldLayer === 'surface';
       const d = dist(ent.x, ent.y, p.x, p.y);
       const isWearingBeefaloHat = p.equipped.head && p.equipped.head.id === 'beefalo_hat';
@@ -6403,6 +6702,119 @@ function updateEntities(dt, isDark) {
             ent.x += Math.cos(angle) * 45 * dt;
             ent.y += Math.sin(angle) * 45 * dt;
           }
+        }
+      }
+    }
+
+    // Tornado (from Weather Pain spell)
+    if (ent.type === 'tornado') {
+      ent.timer = (ent.timer || 0) + dt;
+      if (ent.timer >= (ent.duration || 5.5)) {
+        state.entities = state.entities.filter(e => e !== ent);
+        continue;
+      }
+      ent.x += ent.vx * dt;
+      ent.y += ent.vy * dt;
+      ent.spin = ((ent.spin || 0) + dt * 16) % (Math.PI * 2);
+      for (const t of state.entities) {
+        if (t === ent) continue;
+        if (dist(ent.x, ent.y, t.x, t.y) < ent.radius + (t.radius || 20)) {
+          if (t.type === 'tree' || t.type === 'rock') {
+            t.hp = 0;
+            createHitParticles(t.x, t.y, '#90a4ae');
+          } else if (['spider', 'spider_warrior', 'hound', 'treeguard', 'deerclops', 'bearger', 'moosegoose', 'dragonfly', 'klaus', 'crawling_horror', 'terrorbeak'].includes(t.type)) {
+            t.hp -= 30 * dt * 3.5;
+            createHitParticles(t.x, t.y, '#b0bec5');
+          }
+        }
+      }
+    }
+
+    // Beefalo Calf (Cute baby calf following mom)
+    if (ent.type === 'beefalo_calf') {
+      if (ent.parent && state.entities.includes(ent.parent)) {
+        const dp = dist(ent.x, ent.y, ent.parent.x, ent.parent.y);
+        if (dp > 45) {
+          const ap = Math.atan2(ent.parent.y - ent.y, ent.parent.x - ent.x);
+          ent.x += Math.cos(ap) * 85 * dt;
+          ent.y += Math.sin(ap) * 85 * dt;
+        }
+      }
+    }
+
+    // Buzzards (Desert scavengers)
+    if (ent.type === 'buzzard') {
+      if (ent.target) {
+        const d = dist(ent.x, ent.y, ent.target.x, ent.target.y);
+        const a = Math.atan2(ent.target.y - ent.y, ent.target.x - ent.x);
+        ent.x += Math.cos(a) * 110 * dt;
+        ent.y += Math.sin(a) * 110 * dt;
+        if (d < 28) {
+          ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+          if (ent.attackCooldown <= 0) {
+            audio.playHit();
+            p.hp -= 15;
+            showToast('🦅 秃鹰尖喙俯冲啄击！(-15 HP)');
+            ent.attackCooldown = 1.6;
+          }
+        }
+      } else {
+        const meatDrop = state.entities.find(d => d.type === 'drop' && ['meat', 'morsel', 'monster_meat'].includes(d.itemId) && dist(ent.x, ent.y, d.x, d.y) < 180);
+        if (meatDrop) {
+          const a = Math.atan2(meatDrop.y - ent.y, meatDrop.x - ent.x);
+          ent.x += Math.cos(a) * 75 * dt;
+          ent.y += Math.sin(a) * 75 * dt;
+          if (dist(ent.x, ent.y, meatDrop.x, meatDrop.y) < 20) {
+            state.entities = state.entities.filter(e => e !== meatDrop);
+            audio.playEat();
+            showToast('🦅 沙漠秃鹰偷食了地面的生肉！');
+          }
+        } else {
+          ent.circleAngle = ((ent.circleAngle || 0) + dt * 0.8) % (Math.PI * 2);
+          ent.x += Math.cos(ent.circleAngle) * 35 * dt;
+          ent.y += Math.sin(ent.circleAngle) * 35 * dt;
+        }
+      }
+    }
+
+    // Klaus (Winter Mythic Boss with 2 phases)
+    if (ent.type === 'klaus') {
+      const d = dist(ent.x, ent.y, p.x, p.y);
+      const a = Math.atan2(p.y - ent.y, p.x - ent.x);
+      const isEnraged = ent.hp < 1000;
+      const moveSpeed = isEnraged ? 120 : 70;
+      ent.x += Math.cos(a) * moveSpeed * dt;
+      ent.y += Math.sin(a) * moveSpeed * dt;
+      ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+      if (d < 50 && ent.attackCooldown <= 0) {
+        audio.playBossRoar();
+        audio.playHit();
+        const dmg = isEnraged ? 65 : 45;
+        p.hp -= dmg;
+        showToast(isEnraged ? '👹 克劳斯胸腹巨口暴怒撕咬！(-65 HP)' : '👹 克劳斯锁链重拳暴击！(-45 HP)');
+        ent.attackCooldown = isEnraged ? 1.2 : 2.0;
+      }
+    }
+
+    // Gem Deer (Red fire spells & Blue freeze spells)
+    if (ent.type === 'gem_deer') {
+      const d = dist(ent.x, ent.y, p.x, p.y);
+      if (d > 120) {
+        const a = Math.atan2(p.y - ent.y, p.x - ent.x);
+        ent.x += Math.cos(a) * 80 * dt;
+        ent.y += Math.sin(a) * 80 * dt;
+      }
+      ent.spellCooldown = (ent.spellCooldown || 4) - dt;
+      if (ent.spellCooldown <= 0 && d < 240) {
+        ent.spellCooldown = 5.0;
+        if (ent.deerType === 'red') {
+          createHitParticles(p.x, p.y, '#ff5722');
+          p.hp -= 15;
+          showToast('🔥 红宝石鹿引爆了烈焰法阵！(-15 HP)');
+        } else {
+          createHitParticles(p.x, p.y, '#00e5ff');
+          p.speed = (CHARACTERS[state.character]?.speed || 165) * 0.5;
+          showToast('❄️ 蓝宝石鹿释放了极寒冰封减速！');
         }
       }
     }
@@ -9678,6 +10090,124 @@ function drawEntity(ent) {
       ctx.beginPath(); ctx.arc(-4, -8, 3, 0, Math.PI * 2); ctx.fill();
       ctx.beginPath(); ctx.arc(4, -8, 3, 0, Math.PI * 2); ctx.fill();
     }
+  } else if (ent.type === 'auto_feeder') {
+    // Wooden Trough with Silage
+    ctx.fillStyle = '#5d4037';
+    ctx.fillRect(-20, -12, 40, 24);
+    ctx.fillStyle = '#8d6e63';
+    ctx.fillRect(-17, -9, 34, 18);
+    ctx.fillStyle = '#81c784';
+    ctx.beginPath();
+    ctx.arc(0, 0, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffecb3';
+    ctx.font = '14px sans-serif';
+    ctx.fillText('🌾', -7, 5);
+  } else if (ent.type === 'solar_lantern') {
+    // Obsidian Crystal Light Pole
+    ctx.fillStyle = '#37474f';
+    ctx.fillRect(-4, -28, 8, 28);
+    ctx.fillStyle = isDark ? '#fff59d' : '#81d4fa';
+    ctx.beginPath();
+    ctx.arc(0, -30, 10, 0, Math.PI * 2);
+    ctx.fill();
+    if (isDark) {
+      ctx.fillStyle = 'rgba(255, 245, 157, 0.45)';
+      ctx.beginPath();
+      ctx.arc(0, -30, 18, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  } else if (ent.type === 'tornado') {
+    ctx.save();
+    ctx.rotate(ent.spin || 0);
+    ctx.fillStyle = 'rgba(200, 230, 240, 0.65)';
+    for (let i = 0; i < 4; i++) {
+      ctx.rotate(Math.PI / 2);
+      ctx.beginPath();
+      ctx.ellipse(12, 0, 16, 6, 0.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.beginPath();
+    ctx.arc(0, 0, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  } else if (ent.type === 'beefalo_calf') {
+    ctx.fillStyle = '#5d4037';
+    ctx.beginPath();
+    ctx.ellipse(0, -8, 16, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#3e2723';
+    ctx.beginPath();
+    ctx.arc(10, -12, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#d7ccc8';
+    ctx.fillRect(10, -18, 3, 5);
+  } else if (ent.type === 'buzzard') {
+    ctx.fillStyle = '#3e2723';
+    ctx.beginPath();
+    ctx.ellipse(0, -8, 18, 12, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#f48fb1';
+    ctx.beginPath();
+    ctx.arc(12, -14, 7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffb300';
+    ctx.fillRect(17, -13, 8, 4);
+  } else if (ent.type === 'klaus') {
+    // Mythic Boss Klaus: Chained Santa-Beast & Enraged Maw
+    const isEnraged = ent.hp < 1000;
+    ctx.fillStyle = isEnraged ? '#b71c1c' : '#212121';
+    ctx.beginPath();
+    ctx.ellipse(0, -22, 38, 48, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Klaus Red Robe Trim & Fur
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(-34, -4, 68, 8);
+    // Horns
+    ctx.strokeStyle = '#3e2723';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    ctx.moveTo(-16, -60);
+    ctx.lineTo(-36, -85);
+    ctx.moveTo(16, -60);
+    ctx.lineTo(36, -85);
+    ctx.stroke();
+    // Face & Eyes
+    ctx.fillStyle = '#ff1744';
+    ctx.fillRect(-12, -45, 6, 6);
+    ctx.fillRect(6, -45, 6, 6);
+    if (isEnraged) {
+      // Gaping Demonic Maw in Chest
+      ctx.fillStyle = '#000000';
+      ctx.beginPath();
+      ctx.ellipse(0, -15, 20, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      for (let t = -14; t <= 14; t += 7) {
+        ctx.fillRect(t, -22, 4, 6);
+        ctx.fillRect(t, -12, 4, 6);
+      }
+    } else {
+      // Heavy Grey Restraining Chains
+      ctx.strokeStyle = '#90a4ae';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-28, -35);
+      ctx.lineTo(28, -5);
+      ctx.moveTo(28, -35);
+      ctx.lineTo(-28, -5);
+      ctx.stroke();
+    }
+  } else if (ent.type === 'gem_deer') {
+    ctx.fillStyle = '#4e342e';
+    ctx.beginPath();
+    ctx.ellipse(0, -12, 22, 16, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = ent.deerType === 'red' ? '#ff1744' : '#00e5ff';
+    ctx.beginPath();
+    ctx.arc(14, -28, 8, 0, Math.PI * 2);
+    ctx.fill();
   } else if (ent.type === 'dwarf_star') {
     // Radiant Dwarf Star
     const sPulse = Math.sin(Date.now() / 150) * 3;

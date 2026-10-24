@@ -3103,6 +3103,7 @@ function initWorld() {
   dropWorldItem('twig', state.player.x - 30, state.player.y + 10, 4);
   dropWorldItem('grass', state.player.x + 10, state.player.y - 30, 6);
   dropWorldItem('berry', state.player.x - 20, state.player.y - 20, 3);
+  addToPlayer('torch', 1);
 
   // Character Starting Items
   const charDef = CHARACTERS[state.character];
@@ -4074,31 +4075,44 @@ function attackNearest() {
     }
   }
 
-  // 3. Authentic Don't Starve Attack Commitment:
+  // 3. Authentic Don't Starve Facing & Directional Attack Commitment:
   // Wilson halts movement during weapon swing (cannot run and attack simultaneously!)
-  p.attackCooldown = 0.42;
-  p.attackLockTimer = 0.28;
+  const wasWalking = p.walking || (Math.abs(p.vx || 0) > 10 || Math.abs(p.vy || 0) > 10);
+  p.attackCooldown = 0.52;
+  p.attackLockTimer = 0.36;
   p.vx = 0;
   p.vy = 0;
   p.walking = false;
   p.actionTick = 16;
 
-  // 4. Direction & Facing Lock
-  if (nearest) {
-    p.facingAngle = Math.atan2(nearest.y - p.y, nearest.x - p.x);
-    p.facing = Math.cos(p.facingAngle) >= 0 ? 'right' : 'left';
-  }
+  // Current facing angle of player prior to swing
+  const currentFacing = p.facingAngle !== undefined ? p.facingAngle : (p.facing === 'left' ? Math.PI : 0);
 
-  // 5. Frontal Cone Check (132° swing arc)
+  // If player was actively moving/running away, swing in the movement direction (cannot strike backwards!)
+  // If player was standing idle, player locks onto target angle
+  let swingAngle = currentFacing;
   let canHitTarget = false;
+
   if (nearest) {
     const angleToTarget = Math.atan2(nearest.y - p.y, nearest.x - p.x);
-    let diff = Math.abs(angleToTarget - (p.facingAngle || 0));
+    let diff = Math.abs(angleToTarget - currentFacing);
     while (diff > Math.PI) diff = Math.abs(diff - Math.PI * 2);
-    canHitTarget = diff <= 1.15; // ~66° half-cone
+
+    if (wasWalking) {
+      // Running attack: strictly limited to frontal cone (+/- 55° = 0.96 rad)
+      // Monsters pursuing behind will NOT be hit!
+      canHitTarget = diff <= 0.96;
+      swingAngle = currentFacing;
+    } else {
+      // Standing idle attack: player faces target and swings
+      p.facingAngle = angleToTarget;
+      p.facing = Math.cos(angleToTarget) >= 0 ? 'right' : 'left';
+      swingAngle = angleToTarget;
+      canHitTarget = true;
+    }
   }
 
-  // 6. Dynamic Crescent Weapon Slash Effect
+  // Dynamic Crescent Weapon Slash Effect
   let slashColor = '#ffffff';
   if (handItem?.id === 'darksword') slashColor = '#9c27b0';
   else if (handItem?.id === 'bat_bat') slashColor = '#e91e63';
@@ -4107,16 +4121,19 @@ function attackNearest() {
   else if (handItem?.id === 'spear' || handItem?.id === 'tentacle_spike') slashColor = '#eceff1';
 
   p.slashEffect = {
-    angle: p.facingAngle || 0,
+    angle: swingAngle,
     timer: 0.24,
     maxTimer: 0.24,
     color: slashColor,
     reach: attackRange
   };
 
-  // 7. Whiff / Miss if no target in range or angle
+  // Whiff / Miss if no target in range or angle
   if (!nearest || !canHitTarget) {
     audio.playHit();
+    if (wasWalking && nearest) {
+      showToast('⚠️ 背向奔跑中挥空！必须停下转身正对怪物！');
+    }
     return;
   }
 

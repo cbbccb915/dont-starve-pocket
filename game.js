@@ -498,7 +498,44 @@ const ITEMS = {
   glommer_fuel: { id: 'glommer_fuel', name: '格罗姆黏液', icon: '🧪', desc: '格罗姆分泌的高能黏液，极佳的火堆燃料与肥料，食用回复40血但扣50理智', stack: 20, isFood: true, food: { hunger: 9, hp: 40, sanity: -50, rotDays: 999 } },
   jet_feather: { id: 'jet_feather', name: '黑羽毛', icon: '🪶', desc: '乌鸦掉落的乌黑羽毛，可制作吹箭', stack: 20 },
   crimson_feather: { id: 'crimson_feather', name: '红羽毛', icon: '🪶', desc: '红雀掉落的鲜红羽毛', stack: 20 },
-  azure_feather: { id: 'azure_feather', name: '蓝羽毛', icon: '🪶', desc: '雪雀掉落的蔚蓝羽毛', stack: 20 }
+  azure_feather: { id: 'azure_feather', name: '蓝羽毛', icon: '🪶', desc: '雪雀掉落的蔚蓝羽毛', stack: 20 },
+
+  // --- Automation Machinery ---
+  auto_harvester_item: { id: 'auto_harvester_item', name: '全自动机械收割机', icon: '⚙️🌾', desc: '发条机械自动化！自动收割周围220px内成熟浆果、农作物、树枝与草并整齐归拢入箱。', isPlaceable: 'auto_harvester' },
+  vacuum_chest_item: { id: 'vacuum_chest_item', name: '虚空吸附整理箱', icon: '📦🌀', desc: '暗影漏斗箱！自动吸入周围180px地面所有掉落物并自动整理堆叠入箱。', isPlaceable: 'vacuum_chest' },
+  sprinkler_item: { id: 'sprinkler_item', name: '自动喷灌机', icon: '🚿💦', desc: '360度旋转喷灌！滋润农田加速作物成长，夏季防止农作物枯萎与自燃。', isPlaceable: 'sprinkler' },
+  houndius_shootius_item: { id: 'houndius_shootius_item', name: '远古眼球激光塔', icon: '🏰👁️', desc: '远古伪科学守卫！自动锁定敌对怪物发射超视距高能毁灭射线！', isPlaceable: 'houndius_shootius' },
+  scaled_furnace_item: { id: 'scaled_furnace_item', name: '龙鳞壁炉', icon: '🔥🏮', desc: '永不熄灭的龙鳞壁炉！散发永恒光明与融融暖意，冬日庇护所核心设施。', isPlaceable: 'scaled_furnace' },
+
+  // --- Simulation & Taming ---
+  beefalo_brush: { id: 'beefalo_brush', name: '牛毛刷', icon: '🪮🐂', desc: '每日梳理皮弗娄牛毛发，大幅提升服从度与驯化速度，并掉落额外优质牛毛。', equipSlot: 'hand', durability: 75 },
+  mushroom_planter_item: { id: 'mushroom_planter_item', name: '蘑菇栽培木桩', icon: '🍄🪵', desc: '湿润菌木桩！可栽培红蘑菇、绿蘑菇或蓝蘑菇，施肥可实现持续高产。', isPlaceable: 'mushroom_planter' },
+  red_mushroom: { id: 'red_mushroom', name: '红蘑菇', icon: '🍄', desc: '鲜艳有毒的红伞菌，生食-20生命但微量恢复饥饿。', stack: 20, isFood: true, food: { hunger: 12.5, hp: -20, sanity: 0, rotDays: 10, cookable: 'red_mushroom_cooked' } },
+  red_mushroom_cooked: { id: 'red_mushroom_cooked', name: '熟红蘑菇', icon: '🔥🍄', desc: '烤熟的红蘑菇，损失10理智，微弱恢复1生命。', stack: 20, isFood: true, food: { hunger: 0, hp: 1, sanity: -10, rotDays: 10 } },
+  green_mushroom: { id: 'green_mushroom', name: '绿蘑菇', icon: '🍄‍🟫', desc: '生食扣除50点巨额理智，快速进入疯狂状态刷噩梦燃料之神器！', stack: 20, isFood: true, food: { hunger: 12.5, hp: 0, sanity: -50, rotDays: 10, cookable: 'green_mushroom_cooked' } },
+  green_mushroom_cooked: { id: 'green_mushroom_cooked', name: '熟绿蘑菇', icon: '🔥🍄‍🟫', desc: '烤熟后散发安神香气，食用恢复15理智，微损1点生命。', stack: 20, isFood: true, food: { hunger: 0, hp: -1, sanity: 15, rotDays: 10 } },
+  blue_mushroom: { id: 'blue_mushroom', name: '蓝蘑菇', icon: '🍄🔵', desc: '荒野急救灵药！生食回复20巨额生命，损失15理智。', stack: 20, isFood: true, food: { hunger: 12.5, hp: 20, sanity: -15, rotDays: 10, cookable: 'blue_mushroom_cooked' } },
+  blue_mushroom_cooked: { id: 'blue_mushroom_cooked', name: '熟蓝蘑菇', icon: '🔥🍄🔵', desc: '烤熟后温和可口，食用回复10点理智，损失3点生命。', stack: 20, isFood: true, food: { hunger: 0, hp: -3, sanity: 10, rotDays: 10 } },
+  dragonfruit_seeds: { id: 'dragonfruit_seeds', name: '火龙果特异良种', icon: '🌱🐉', desc: '喂食鸟雀火龙果精选出的纯正特异种子，种植100%长出火龙果！', stack: 40 },
+  down_feather: { id: 'down_feather', name: '羽绒', icon: '🪶✨', desc: '击溃春季莫斯鹅获得的轻柔羽绒，保暖御寒。', stack: 20 },
+
+  // --- Ancient Gemstones ---
+  yellow_gem: { id: 'yellow_gem', name: '黄宝石', icon: '💎🟡', desc: '凝聚太阳耀斑的极耀魔石，制作魔光护符与呼星法杖的秘宝。', stack: 20 },
+  orange_gem: { id: 'orange_gem', name: '橙宝石', icon: '💎🟠', desc: '掌控空间与吸附力场的虚空橙晶，制作瞬移懒人杖与懒人护符。', stack: 20 },
+  green_gem: { id: 'green_gem', name: '绿宝石', icon: '💎🟢', desc: '蕴藏构筑与逆反本质的翠绿神石，制作分解法杖与建造神装。', stack: 20 },
+
+  // --- Magic Expansion ---
+  magiluminescence: { id: 'magiluminescence', name: '魔光护符', icon: '📿🟡', desc: '佩戴散发永恒耀眼光环、提升20%移速并每秒安抚回复理智！', equipSlot: 'amulet', durability: 480 },
+  the_lazy_forager: { id: 'the_lazy_forager', name: '懒人搜集护符', icon: '📿🟠', desc: '虚空磁吸！佩戴时自动将半径150px内的地面掉落物隔空吸入背包。', equipSlot: 'amulet', durability: 225 },
+  the_lazy_explorer: { id: 'the_lazy_explorer', name: '瞬移懒人杖', icon: '🪄🟠', desc: '手持此杖点击地图任意位置瞬间闪烁传送！穿越障碍无影无踪。', equipSlot: 'hand', durability: 25 },
+  telelocator_staff: { id: 'telelocator_staff', name: '远距传送法杖', icon: '🪄🟣', desc: '引动雷云风暴，瞬间将施法者传送回科学大本营！', equipSlot: 'hand', durability: 10 },
+  deconstruction_staff: { id: 'deconstruction_staff', name: '绿晶分解法杖', icon: '🪄🟢', desc: '逆转万物法则！对准建筑施法将其无损分解为100%全额初始材料。', equipSlot: 'hand', durability: 8 },
+  star_caller_staff: { id: 'star_caller_staff', name: '呼星者法杖', icon: '🪄🟡', desc: '从苍穹召唤一颗散发永恒炽光与温暖的【矮人恒星】降临地面！', equipSlot: 'hand', durability: 12 },
+  codex_umbra: { id: 'codex_umbra', name: '暗影秘典', icon: '📖🟣', desc: '麦斯威尔的黑魔法禁典！召唤暗影伐木傀儡、矿工傀儡或暗影角斗士！', stack: 1 },
+  eyebrella: { id: 'eyebrella', name: '眼球伞', icon: '👁️☂️', desc: '独眼巨鹿眼球精制的至宝！100%绝对防水防雷击，夏季提供绝对遮阳！', equipSlot: 'head', durability: 450, coldProtect: 0 },
+  bearger_vest: { id: 'bearger_vest', name: '冬眠熊皮背心', icon: '🦺🐻', desc: '击溃暴食熊獾的终极御寒战利品！极寒免疫，每秒大幅恢复理智与抵御严冬。', equipSlot: 'body', durability: 600, coldProtect: 2.5 },
+  spiderhat: { id: 'spiderhat', name: '蜘蛛女王帽', icon: '👑🕷️', desc: '佩戴化身蜘蛛领主！半径320px内所有蜘蛛俯首称臣，协助作战！', equipSlot: 'head', durability: 240 },
+  spidereggsack: { id: 'spidereggsack', name: '蜘蛛卵巢包', icon: '🥚🕸️', desc: '可将蜘蛛卵种植在任意空地，繁育成新的蜘蛛族群生态。', isPlaceable: 'spider_den' }
 };
 
 // --- 3. Complete Tech Tree Recipes ---
@@ -580,7 +617,29 @@ const RECIPES = [
   { id: 'boat_kit', cat: 'nautical', tier: 1, name: '远洋造船套件', icon: '⛵', req: { boards: 4, rope: 3 }, desc: '出海扬帆远航' },
   { id: 'boat_oar', cat: 'nautical', tier: 0, name: '简易船桨', icon: '🛶', req: { twig: 2, log: 1 }, desc: '提升出海航速' },
   { id: 'glass_cutter', cat: 'nautical', tier: 4, name: '玻璃切割刀', icon: '🗡️🌙', req: { moon_rock: 1, moon_shard: 6 }, desc: '68点月华斩击伤害' },
-  { id: 'celestial_altar_item', cat: 'nautical', tier: 4, name: '天体祭坛基座', icon: '🌙🏛️', req: { moon_rock: 4, moon_shard: 8 }, desc: '激活月岛启蒙科技' }
+  { id: 'celestial_altar_item', cat: 'nautical', tier: 4, name: '天体祭坛基座', icon: '🌙🏛️', req: { moon_rock: 4, moon_shard: 8 }, desc: '激活月岛启蒙科技' },
+
+  // --- Automation Machinery ---
+  { id: 'auto_harvester_item', cat: 'science', tier: 2, name: '全自动收割机', icon: '⚙️🌾', req: { gears: 2, cut_stone: 3, rope: 2 }, desc: '自动采收周围成熟植物与农作物' },
+  { id: 'vacuum_chest_item', cat: 'structures', tier: 2, name: '虚空整理箱', icon: '📦🌀', req: { chest_item: 1, nightmare_fuel: 4, gears: 1 }, desc: '自动吸纳整理地面掉落物入箱' },
+  { id: 'sprinkler_item', cat: 'science', tier: 2, name: '自动喷灌机', icon: '🚿💦', req: { gears: 1, cut_stone: 2, ice: 6 }, desc: '360度喷灌灌溉农田，防枯萎防自燃' },
+  { id: 'houndius_shootius_item', cat: 'magic', tier: 4, name: '远古眼球激光塔', icon: '🏰👁️', req: { deerclops_eye: 1, guardian_horn: 1, thulecite: 5 }, desc: '全自动超视距激光守卫' },
+  { id: 'scaled_furnace_item', cat: 'structures', tier: 3, name: '龙鳞壁炉', icon: '🔥🏮', req: { dragon_scales: 1, charcoal: 6, cut_stone: 4 }, desc: '永不熄灭的永恒光明与融融暖炉' },
+
+  // --- Simulation & Taming ---
+  { id: 'beefalo_brush', cat: 'survival', tier: 1, name: '牛毛刷', icon: '🪮🐂', req: { twig: 2, beefalo_wool: 3, rope: 1 }, desc: '日常梳理提升牛牛驯化与服从' },
+  { id: 'mushroom_planter_item', cat: 'food', tier: 1, name: '蘑菇栽培木桩', icon: '🍄🪵', req: { living_log: 1, rot: 4, manure: 2 }, desc: '培育各色蘑菇' },
+
+  // --- Magic System ---
+  { id: 'magiluminescence', cat: 'magic', tier: 3, name: '魔光护符', icon: '📿🟡', req: { yellow_gem: 2, gold: 3, nightmare_fuel: 2 }, desc: '移动光明+20%移速+持续回理智' },
+  { id: 'the_lazy_forager', cat: 'magic', tier: 3, name: '懒人搜集护符', icon: '📿🟠', req: { orange_gem: 2, gold: 3, nightmare_fuel: 2 }, desc: '自动虚空吸纳地面掉落物入包' },
+  { id: 'the_lazy_explorer', cat: 'magic', tier: 4, name: '瞬移懒人杖', icon: '🪄🟠', req: { orange_gem: 2, cane: 1, nightmare_fuel: 4 }, desc: '点击地面瞬间闪烁瞬移' },
+  { id: 'telelocator_staff', cat: 'magic', tier: 3, name: '远距传送法杖', icon: '🪄🟣', req: { purple_gem: 2, living_log: 2, nightmare_fuel: 4 }, desc: '瞬间风暴传送回基地' },
+  { id: 'deconstruction_staff', cat: 'magic', tier: 4, name: '绿晶分解法杖', icon: '🪄🟢', req: { green_gem: 2, living_log: 2, nightmare_fuel: 4 }, desc: '将建筑100%无损分解为原料' },
+  { id: 'star_caller_staff', cat: 'magic', tier: 4, name: '呼星者法杖', icon: '🪄🟡', req: { yellow_gem: 2, living_log: 2, nightmare_fuel: 4 }, desc: '召唤地面长明矮人恒星' },
+  { id: 'codex_umbra', cat: 'magic', tier: 2, name: '暗影秘典', icon: '📖🟣', req: { nightmare_fuel: 6, boards: 2 }, desc: '召唤暗影伐木/矿工/角斗士傀儡' },
+  { id: 'eyebrella', cat: 'survival', tier: 2, name: '眼球伞', icon: '👁️☂️', req: { deerclops_eye: 1, twig: 6, silk: 4 }, desc: '100%全防水全防雷眼球伞' },
+  { id: 'bearger_vest', cat: 'survival', tier: 3, name: '冬眠熊皮背心', icon: '🦺🐻', req: { bearger_fur: 1, rope: 3, beefalo_wool: 4 }, desc: '终极保暖抗冻神器' }
 ];
 
 // --- 4. Main Game State & Survival Diary ---
@@ -1060,6 +1119,15 @@ function onSlotClicked(source, index) {
   } else if (slot.id === 'gears' && state.character === 'wx78') {
     btnUse.innerText = '吞噬升级';
     btnUse.style.display = 'inline-block';
+  } else if (slot.id === 'codex_umbra') {
+    btnUse.innerText = '召唤暗影傀儡';
+    btnUse.style.display = 'inline-block';
+  } else if (slot.id === 'telelocator_staff') {
+    btnUse.innerText = '引渡回基地';
+    btnUse.style.display = 'inline-block';
+  } else if (slot.id === 'star_caller_staff') {
+    btnUse.innerText = '召唤矮人恒星';
+    btnUse.style.display = 'inline-block';
   } else if (def.food) {
     btnUse.innerText = '食用';
     btnUse.style.display = 'inline-block';
@@ -1156,6 +1224,84 @@ function useCurrentItem(source, index) {
     closePopover();
     updateInventoryUI();
     updateHUD();
+    return;
+  }
+
+  if (slot.id === 'codex_umbra') {
+    if (countTotalItem('nightmare_fuel') < 2) {
+      showToast('📖 暗影秘典需要至少 2 份【噩梦燃料】作为禁忌施法媒介！');
+      return;
+    }
+    removeTotalItem('nightmare_fuel', 2);
+    p.sanity = Math.max(0, p.sanity - 30);
+    audio.playMagic();
+    createHitParticles(p.x, p.y, '#9c27b0');
+    // Rotate shadow minions: Lumberjack -> Miner -> Duelist
+    state.shadowPuppetCycle = ((state.shadowPuppetCycle || 0) + 1) % 3;
+    const puppetType = state.shadowPuppetCycle === 0 ? 'shadow_lumberjack' : (state.shadowPuppetCycle === 1 ? 'shadow_miner' : 'shadow_duelist');
+    const puppetNames = { shadow_lumberjack: '暗影伐木傀儡', shadow_miner: '暗影矿工傀儡', shadow_duelist: '暗影角斗士' };
+    state.entities.push({
+      type: puppetType,
+      x: p.x + (Math.random() - 0.5) * 40,
+      y: p.y + (Math.random() - 0.5) * 40,
+      hp: puppetType === 'shadow_duelist' ? 250 : 120,
+      maxHp: puppetType === 'shadow_duelist' ? 250 : 120,
+      radius: 18,
+      speed: 110
+    });
+    showToast(`📖 吟诵暗影禁咒！从虚空中召唤出【${puppetNames[puppetType]}】助战！(-30理智)`);
+    closePopover();
+    updateInventoryUI();
+    return;
+  }
+
+  if (slot.id === 'telelocator_staff') {
+    p.sanity = Math.max(0, p.sanity - 25);
+    slot.durability = (slot.durability !== undefined ? slot.durability : 10) - 1;
+    audio.playMagic();
+    createHitParticles(p.x, p.y, '#ab47bc');
+    // Find nearest base station or default spawn
+    let targetX = 1900, targetY = 1900;
+    const baseStation = state.entities.find(e => e.type === 'alchemy_engine' || e.type === 'science_machine');
+    if (baseStation) {
+      targetX = baseStation.x + 35;
+      targetY = baseStation.y + 35;
+    }
+    p.x = targetX;
+    p.y = targetY;
+    createHitParticles(p.x, p.y, '#ab47bc');
+    if (slot.durability <= 0) {
+      slots[index] = null;
+      showToast('远距传送法杖魔力耗尽破碎！(-25理智)');
+    } else {
+      showToast(`⚡ 紫电轰鸣！传送法杖将你安全引渡回基地！剩余耐久: ${slot.durability}`);
+    }
+    closePopover();
+    updateInventoryUI();
+    return;
+  }
+
+  if (slot.id === 'star_caller_staff') {
+    p.sanity = Math.max(0, p.sanity - 20);
+    slot.durability = (slot.durability !== undefined ? slot.durability : 12) - 1;
+    audio.playMagic();
+    const starX = p.x + (p.facing === 'left' ? -60 : 60);
+    const starY = p.y;
+    state.entities.push({
+      type: 'dwarf_star',
+      x: starX, y: starY,
+      radius: 26,
+      lifetime: 180
+    });
+    createHitParticles(starX, starY, '#ffb300');
+    if (slot.durability <= 0) {
+      slots[index] = null;
+      showToast('呼星法杖耗尽极光威能消散！');
+    } else {
+      showToast(`🌟 从苍穹引落炽热的【矮人恒星】！持续发光放热3分钟！剩余耐久: ${slot.durability}`);
+    }
+    closePopover();
+    updateInventoryUI();
     return;
   }
 
@@ -1338,6 +1484,42 @@ function deployStructure(type, x, y, rotation) {
       x, y, radius: 26, level: 1, spawnTimer: 8, rotation: rot
     });
     showToast('🕸️ 成功移植种植了蜘蛛巢穴！');
+  } else if (type === 'auto_harvester') {
+    state.entities.push({
+      type: 'auto_harvester',
+      x, y, radius: 28, rotation: rot,
+      timer: 0,
+      range: 220,
+      armAngle: 0
+    });
+    showToast('⚙️ 建造了【全自动机械收割机】！发条动力自动收割周边作物！');
+  } else if (type === 'vacuum_chest') {
+    state.entities.push({
+      type: 'vacuum_chest',
+      x, y, radius: 24, rotation: rot,
+      items: new Array(9).fill(null),
+      timer: 0,
+      range: 180
+    });
+    showToast('📦🌀 建造了【虚空吸附整理箱】！自动隔空吸纳整理地面物资！');
+  } else if (type === 'sprinkler') {
+    state.entities.push({
+      type: 'sprinkler',
+      x, y, radius: 26, rotation: rot,
+      timer: 0,
+      range: 220,
+      sprayAngle: 0
+    });
+    showToast('🚿 建造了【自动喷灌机】！滋养农田加速生长，防御炎夏枯萎！');
+  } else if (type === 'mushroom_planter') {
+    state.entities.push({
+      type: 'mushroom_planter',
+      x, y, radius: 24, rotation: rot,
+      shroom: null,
+      timer: 0,
+      ready: false
+    });
+    showToast('🍄🪵 放置了【蘑菇栽培木桩】！靠近即可播种各色蘑菇！');
   }
 }
 
@@ -1922,7 +2104,7 @@ function checkBlueprintValidity(x, y, structureType) {
     if (b === 'ocean') return false;
   }
   for (const ent of state.entities) {
-    if (['tree', 'rock', 'chest', 'firepit', 'campfire', 'science_machine', 'alchemy_engine', 'crockpot', 'tent', 'flingomatic', 'drying_rack', 'beebox', 'pig_house', 'merm_house'].includes(ent.type)) {
+    if (['tree', 'rock', 'chest', 'firepit', 'campfire', 'science_machine', 'alchemy_engine', 'crockpot', 'tent', 'flingomatic', 'drying_rack', 'beebox', 'pig_house', 'merm_house', 'auto_harvester', 'vacuum_chest', 'sprinkler', 'mushroom_planter', 'houndius_shootius', 'scaled_furnace'].includes(ent.type)) {
       if (dist(x, y, ent.x, ent.y) < 32) return false;
     }
   }
@@ -2006,6 +2188,36 @@ function drawStructurePreview(ctx, type) {
   } else if (type === 'tent') {
     ctx.fillStyle = '#4e342e';
     ctx.beginPath(); ctx.moveTo(0, -22); ctx.lineTo(-24, 16); ctx.lineTo(24, 16); ctx.closePath(); ctx.fill();
+  } else if (type === 'auto_harvester') {
+    ctx.fillStyle = '#ffb300';
+    ctx.fillRect(-14, -14, 28, 28);
+    ctx.fillStyle = '#424242';
+    ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill();
+  } else if (type === 'vacuum_chest') {
+    ctx.fillStyle = '#5c6bc0';
+    ctx.fillRect(-16, -12, 32, 24);
+    ctx.fillStyle = '#7e57c2';
+    ctx.beginPath(); ctx.arc(0, -2, 6, 0, Math.PI * 2); ctx.fill();
+  } else if (type === 'sprinkler') {
+    ctx.fillStyle = '#29b6f6';
+    ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#0288d1';
+    ctx.fillRect(-3, -16, 6, 12);
+  } else if (type === 'mushroom_planter') {
+    ctx.fillStyle = '#6d4c41';
+    ctx.fillRect(-8, -16, 16, 32);
+    ctx.fillStyle = '#e53935';
+    ctx.beginPath(); ctx.arc(0, -18, 10, 0, Math.PI * 2); ctx.fill();
+  } else if (type === 'houndius_shootius') {
+    ctx.fillStyle = '#b0bec5';
+    ctx.fillRect(-10, -8, 20, 24);
+    ctx.fillStyle = '#d32f2f';
+    ctx.beginPath(); ctx.arc(0, -18, 12, 0, Math.PI * 2); ctx.fill();
+  } else if (type === 'scaled_furnace') {
+    ctx.fillStyle = '#b71c1c';
+    ctx.beginPath(); ctx.arc(0, 0, 18, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ff9800';
+    ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill();
   } else {
     ctx.fillStyle = '#4caf50';
     ctx.fillRect(-14, -14, 28, 28);
@@ -3039,7 +3251,7 @@ function interactNearest() {
            'chest', 'crockpot', 'tent', 'pig_king', 'pig', 'beefalo', 'chester', 'cave_entrance', 'cave_exit',
            'light_flower', 'farmplot', 'stalagmite', 'thulecite_rock', 'pond', 'ancient_station',
            'drying_rack', 'birdcage', 'beebox', 'boat', 'teleportato_base', 'celestial_altar', 'bird_trap',
-           'grave', 'tallbird_nest', 'evil_flower', 'tumbleweed', 'cactus', 'dirt_pile', 'catcoon', 'glommer_statue', 'beehive', 'marble_pillar'].includes(ent.type)) {
+           'grave', 'tallbird_nest', 'evil_flower', 'tumbleweed', 'cactus', 'dirt_pile', 'catcoon', 'glommer_statue', 'beehive', 'marble_pillar', 'vacuum_chest', 'mushroom_planter', 'dwarf_star'].includes(ent.type)) {
         const effDist = ent.type === 'drop' ? d - 40 : d;
         if (effDist < minEffectiveDist) {
           minEffectiveDist = effDist;
@@ -3051,6 +3263,37 @@ function interactNearest() {
 
   if (!nearest) return;
   p.actionTick = 10;
+
+  // Deconstruction Staff Spell (Green Gem Staff)
+  if (p.equipped.hand && p.equipped.hand.id === 'deconstruction_staff') {
+    const deconstructibles = ['campfire', 'firepit', 'science_machine', 'alchemy_engine', 'chest', 'crockpot', 'icebox', 'tent', 'lightning_rod', 'tooth_trap', 'flingomatic', 'drying_rack', 'birdcage', 'beebox', 'auto_harvester', 'vacuum_chest', 'sprinkler', 'mushroom_planter'];
+    if (deconstructibles.includes(nearest.type)) {
+      audio.playMagic();
+      createHitParticles(nearest.x, nearest.y, '#2ecc71');
+      // Look up recipe for 100% refund
+      const recipeItem = nearest.type + '_item';
+      const r = RECIPES.find(rec => rec.id === recipeItem || rec.id === nearest.type);
+      if (r && r.req) {
+        for (const [mat, cnt] of Object.entries(r.req)) {
+          dropWorldItem(mat, nearest.x + (Math.random() - 0.5) * 30, nearest.y + (Math.random() - 0.5) * 30, cnt);
+        }
+      } else {
+        dropWorldItem('boards', nearest.x, nearest.y, 2);
+        dropWorldItem('cut_stone', nearest.x + 10, nearest.y, 2);
+      }
+      state.entities = state.entities.filter(e => e !== nearest);
+      p.sanity = Math.max(0, p.sanity - 15);
+      p.equipped.hand.durability -= 1;
+      if (p.equipped.hand.durability <= 0) {
+        p.equipped.hand = null;
+        showToast('绿晶分解法杖耗尽神能碎裂！');
+      } else {
+        showToast(`🪄 绿晶法杖释放解构力场！已将建筑100%返还为原始素材！(-15理智)`);
+      }
+      updateInventoryUI();
+      return;
+    }
+  }
 
   if (nearest.type === 'drop') {
     if (addToPlayer(nearest.itemId, nearest.count, { durability: nearest.durability, freshness: nearest.freshness, heatStored: nearest.heatStored })) {
@@ -3069,8 +3312,50 @@ function interactNearest() {
     }
   } else if (nearest.type === 'chester') {
     openChesterUI();
-  } else if (nearest.type === 'chest') {
+  } else if (nearest.type === 'chest' || nearest.type === 'vacuum_chest') {
     openChestUI(nearest);
+  } else if (nearest.type === 'mushroom_planter') {
+    if (nearest.ready && nearest.shroom) {
+      if (addToPlayer(nearest.shroom, 4)) {
+        audio.playPickup();
+        showToast(`🍄 丰收！从栽培木桩上采摘了 4 朵【${ITEMS[nearest.shroom]?.name || '蘑菇'}】！`);
+        nearest.ready = false;
+        nearest.shroom = null;
+        nearest.timer = 0;
+      }
+    } else if (!nearest.shroom) {
+      const shroomTypes = ['red_mushroom', 'blue_mushroom', 'green_mushroom'];
+      let chosen = null;
+      for (const st of shroomTypes) {
+        if (countTotalItem(st) > 0) { chosen = st; break; }
+      }
+      if (chosen) {
+        removeTotalItem(chosen, 1);
+        nearest.shroom = chosen;
+        nearest.timer = 60;
+        nearest.ready = false;
+        audio.playCraft();
+        showToast(`🍄🪵 在木桩上成功接种了【${ITEMS[chosen].name}】菌丝！`);
+      } else {
+        showToast('木桩空空如也。背包中持有【红/蓝/绿蘑菇】即可接种培育！');
+      }
+    } else if (nearest.shroom && !nearest.ready) {
+      if (countTotalItem('manure') > 0 || countTotalItem('rot') > 0) {
+        if (countTotalItem('manure') > 0) removeTotalItem('manure', 1);
+        else removeTotalItem('rot', 1);
+        nearest.timer = Math.max(0, nearest.timer - 35);
+        if (nearest.timer <= 0) nearest.ready = true;
+        audio.playCraft();
+        showToast('施加有机肥！蘑菇菌丝飞速茁壮成长！');
+      } else {
+        showToast(`蘑菇正在生长中...剩余 ${Math.ceil(nearest.timer)} 秒 (可施肥加速)`);
+      }
+    }
+  } else if (nearest.type === 'dwarf_star') {
+    audio.playMagic();
+    p.sanity = Math.min(p.maxSanity, p.sanity + 12);
+    if (p.temp < 30) p.temp += 5;
+    showToast('✨ 沐浴在矮人恒星的和煦日冕中，精神大振！(+12理智)');
   } else if (nearest.type === 'cave_entrance') {
     if (nearest.plugged) {
       const hasPick = p.equipped.hand && ITEMS[p.equipped.hand.id]?.toolType === 'pickaxe';
@@ -3273,6 +3558,24 @@ function interactNearest() {
       showToast('猪人吃下了美味的肉，成为了你的忠诚盟友！');
     }
   } else if (nearest.type === 'beefalo') {
+    // 1. Grooming with Beefalo Brush
+    if (p.equipped.hand && p.equipped.hand.id === 'beefalo_brush') {
+      audio.playChop();
+      p.equipped.hand.durability -= 1;
+      nearest.obedience = Math.min(100, (nearest.obedience || 20) + 30);
+      nearest.domestication = Math.min(100, (nearest.domestication || 0) + 15);
+      dropWorldItem('beefalo_wool', nearest.x + (Math.random() - 0.5) * 20, nearest.y + (Math.random() - 0.5) * 20, 1);
+      createHitParticles(nearest.x, nearest.y, '#e74c3c');
+      p.sanity = Math.min(p.maxSanity, p.sanity + 6);
+      showToast(`🪮 细心为皮弗娄牛梳理毛发！顺滑光亮！服从度: ${nearest.obedience}%，驯化度: ${nearest.domestication}% (+牛毛)`);
+      if (p.equipped.hand.durability <= 0) {
+        p.equipped.hand = null;
+        showToast('牛毛刷磨损损坏了！');
+      }
+      updateInventoryUI();
+      return;
+    }
+    // 2. Shearing wool with Razor
     if (p.equipped.hand && p.equipped.hand.id === 'razor') {
       audio.playChop();
       dropWorldItem('beefalo_wool', nearest.x + 10, nearest.y + 10, 3);
@@ -3281,21 +3584,44 @@ function interactNearest() {
       p.sanity = Math.min(p.maxSanity, p.sanity + 5);
       return;
     }
+    // 3. Dismount if currently riding
     if (state.beefaloRiding) {
       dismountBeefalo();
       return;
     }
+    // 4. Mount if saddled and obedient
     if (nearest.saddled) {
+      if ((nearest.obedience || 0) < 30) {
+        audio.playBeefaloGrunt();
+        createHitParticles(nearest.x, nearest.y, '#7f8c8d');
+        showToast(`🐂 皮弗娄牛服从度过低 (${nearest.obedience || 0}%)！暴躁地甩下了你！请先喂食或用【牛毛刷】梳毛！`);
+        return;
+      }
       mountBeefalo(nearest);
       return;
     }
+    // 5. Feeding Vegetables (Carrot, Dragonfruit, Pumpkin) for Pudgy & High Domestication
+    if (countTotalItem('carrot') > 0 || countTotalItem('dragonfruit') > 0 || countTotalItem('pumpkin') > 0) {
+      const vegId = countTotalItem('dragonfruit') > 0 ? 'dragonfruit' : (countTotalItem('pumpkin') > 0 ? 'pumpkin' : 'carrot');
+      removeTotalItem(vegId, 1);
+      nearest.obedience = Math.min(100, (nearest.obedience || 20) + 25);
+      nearest.domestication = Math.min(100, (nearest.domestication || 0) + 15);
+      nearest.pudgyScore = (nearest.pudgyScore || 0) + 25;
+      if (nearest.pudgyScore >= 50) nearest.tendency = 'pudgy';
+      audio.playEat();
+      createHitParticles(nearest.x, nearest.y, '#2ecc71');
+      showToast(`🥕 喂食美味【${ITEMS[vegId].name}】！服从度: ${nearest.obedience}%，驯化度: ${nearest.domestication}% [特化: ${nearest.tendency === 'pudgy' ? '饱腹肥牛' : '养成中'}]`);
+      return;
+    }
+    // 6. Feeding Grass or Twigs
     if (countTotalItem('grass') > 0 || countTotalItem('twig') > 0) {
       if (countTotalItem('grass') > 0) removeTotalItem('grass', 1);
       else removeTotalItem('twig', 1);
-      nearest.domestication = (nearest.domestication || 0) + 1;
+      nearest.obedience = Math.min(100, (nearest.obedience || 20) + 12);
+      nearest.domestication = Math.min(100, (nearest.domestication || 0) + 8);
       audio.playEat();
       createHitParticles(nearest.x, nearest.y, '#e74c3c');
-      if (nearest.domestication >= 2) {
+      if (nearest.domestication >= 40 && !nearest.saddled) {
         if (countTotalItem('saddle') > 0) {
           removeTotalItem('saddle', 1);
           nearest.saddled = true;
@@ -3306,14 +3632,15 @@ function interactNearest() {
             state.diary.chapters.ch3 = true;
           }
         } else {
-          showToast(`🐂 牛牛非常亲近你 (驯化度: ${nearest.domestication}/2)！手持【简易牛鞍】即可套鞍骑乘！`);
+          showToast(`🐂 牛牛非常亲近你 (驯化: ${nearest.domestication}%，服从: ${nearest.obedience}%)！手持【简易牛鞍】即可套鞍骑乘！`);
         }
       } else {
-        showToast(`🐂 喂食皮弗娄牛！亲密度提升 (${nearest.domestication}/2)`);
+        showToast(`🐂 喂食皮弗娄牛！服从度: ${nearest.obedience}%，驯化度: ${nearest.domestication}%`);
       }
     } else {
       audio.playBeefaloGrunt();
-      showToast('皮弗娄牛咕噜叫着。喂食干草或树枝可驯化，手持剃刀可剃毛！');
+      const tendName = nearest.tendency === 'war' ? '战牛' : (nearest.tendency === 'racer' ? '奔跑牛' : (nearest.tendency === 'pudgy' ? '饱腹肥牛' : '野生'));
+      showToast(`🐂 皮弗娄牛 [驯化: ${nearest.domestication || 0}%] [服从: ${nearest.obedience || 0}%] [形态: ${tendName}]。可用【牛毛刷】梳毛或喂食！`);
     }
   } else if (nearest.type === 'drying_rack') {
     if (nearest.ready) {
@@ -3364,12 +3691,25 @@ function interactNearest() {
         dropWorldItem('egg', nearest.x + 10, nearest.y + 10, 1);
         audio.playCraft();
         showToast('🥚 喂食鸟雀，获得了一枚新鲜鸟蛋！');
-      } else if (countTotalItem('carrot') > 0 || countTotalItem('dragonfruit') > 0 || countTotalItem('pumpkin') > 0) {
-        let cropId = countTotalItem('dragonfruit') > 0 ? 'dragonfruit' : (countTotalItem('pumpkin') > 0 ? 'pumpkin' : 'carrot');
+      } else if (countTotalItem('dragonfruit') > 0) {
+        removeTotalItem('dragonfruit', 1);
+        dropWorldItem('dragonfruit_seeds', nearest.x + 10, nearest.y + 10, 2);
+        audio.playCraft();
+        showToast(`🌱 喂食火龙果，鸟雀啄出了珍贵纯正的【火龙果特异良种】！`);
+      } else if (countTotalItem('egg') > 0) {
+        removeTotalItem('egg', 1);
+        audio.playMagic();
+        p.sanity = Math.min(p.maxSanity, p.sanity + 10);
+        const fRoll = Math.random();
+        const dropF = fRoll < 0.35 ? 'azure_feather' : (fRoll < 0.7 ? 'crimson_feather' : 'jet_feather');
+        dropWorldItem(dropF, nearest.x + 10, nearest.y + 10, 1);
+        showToast(`🪶 鸟雀欢欣啼鸣(+10理智)，蜕落了一支珍稀的【${ITEMS[dropF].name}】！`);
+      } else if (countTotalItem('carrot') > 0 || countTotalItem('pumpkin') > 0) {
+        let cropId = countTotalItem('pumpkin') > 0 ? 'pumpkin' : 'carrot';
         removeTotalItem(cropId, 1);
         dropWorldItem('seeds', nearest.x + 10, nearest.y + 10, 2);
         audio.playCraft();
-        showToast(`🌱 喂食${ITEMS[cropId].name}，鸟雀啄出了纯正特异良种！`);
+        showToast(`🌱 喂食${ITEMS[cropId].name}，鸟雀啄出了特异良种！`);
       } else {
         showToast('鸟笼中的鸟雀欢快鸣叫。喂肉产蛋，喂果蔬产良种！');
       }
@@ -3889,7 +4229,13 @@ function attackNearest() {
       dropWorldItem('guardian_horn', nearest.x, nearest.y, 1);
       dropWorldItem('thulecite', nearest.x + 20, nearest.y, 4);
       dropWorldItem('purple_gem', nearest.x - 15, nearest.y, 2);
+      dropWorldItem('yellow_gem', nearest.x + 10, nearest.y - 15, 1);
+      dropWorldItem('orange_gem', nearest.x - 10, nearest.y - 15, 1);
+      dropWorldItem('green_gem', nearest.x + 25, nearest.y + 10, 1);
       dropWorldItem('meat', nearest.x, nearest.y + 15, 4);
+    } else if (nearest.type === 'werepig') {
+      dropWorldItem('meat', nearest.x, nearest.y, 2);
+      dropWorldItem('pig_skin', nearest.x + 15, nearest.y, 1);
       showToast('🦏 击溃了远古迷宫【远古犀牛守护者】！获得太古角杯与铥矿！');
     } else if (nearest.type === 'spider') {
       dropWorldItem('silk', nearest.x, nearest.y, 1);
@@ -4148,17 +4494,75 @@ function update(dt) {
     p.hp = Math.max(0, p.hp - dt * 3.5); // Starving!
   }
 
-  // Life Giving Amulet HP Regen
-  if (p.equipped.body && p.equipped.body.id === 'life_amulet') {
-    if (p.hp < p.maxHp) {
-      p.hp = Math.min(p.maxHp, p.hp + dt * 0.8);
-      p.equipped.body.durability -= dt * 0.15;
-      if (p.equipped.body.durability <= 0) {
-        p.equipped.body = null;
-        showToast('生命护符能量耗尽碎裂了...');
+  // Magic Amulets Perks (Equipped in amulet or body slot)
+  const activeAmulet = (p.equipped.amulet && ITEMS[p.equipped.amulet.id]) ? p.equipped.amulet :
+                       ((p.equipped.body && ITEMS[p.equipped.body.id]?.equipSlot === 'amulet') ? p.equipped.body : null);
+  if (activeAmulet) {
+    if (activeAmulet.id === 'life_amulet') {
+      if (p.hp < p.maxHp) {
+        p.hp = Math.min(p.maxHp, p.hp + dt * 1.2);
+        activeAmulet.durability -= dt * 0.15;
+        if (activeAmulet.durability <= 0) {
+          if (p.equipped.amulet === activeAmulet) p.equipped.amulet = null;
+          else p.equipped.body = null;
+          showToast('生命护符能量耗尽碎裂了...');
+          updateInventoryUI();
+        }
+      }
+    } else if (activeAmulet.id === 'magiluminescence') {
+      inLight = true;
+      p.speed = (CHARACTERS[state.character]?.speed || 165) * 1.2;
+      p.sanity = Math.min(p.maxSanity, p.sanity + dt * 0.35);
+      activeAmulet.durability -= dt * 0.2;
+      if (activeAmulet.durability <= 0) {
+        if (p.equipped.amulet === activeAmulet) p.equipped.amulet = null;
+        else p.equipped.body = null;
+        showToast('魔光护符灵力枯竭消散了...');
+        updateInventoryUI();
+      }
+    } else if (activeAmulet.id === 'the_lazy_forager') {
+      for (const drop of state.entities) {
+        if (drop.type === 'drop' && dist(p.x, p.y, drop.x, drop.y) < 150) {
+          if (addToPlayer(drop.itemId, drop.count, { durability: drop.durability, freshness: drop.freshness, heatStored: drop.heatStored })) {
+            audio.playPickup();
+            createHitParticles(drop.x, drop.y, '#ffa726');
+            state.entities = state.entities.filter(e => e !== drop);
+            activeAmulet.durability -= 1;
+            if (activeAmulet.durability <= 0) {
+              if (p.equipped.amulet === activeAmulet) p.equipped.amulet = null;
+              else p.equipped.body = null;
+              showToast('懒人搜集护符碎裂了！');
+            }
+            updateInventoryUI();
+            break;
+          }
+        }
+      }
+    } else if (activeAmulet.id === 'chilled_amulet') {
+      if (p.temp > 25) p.temp = Math.max(25, p.temp - dt * 6);
+      p.sanity = Math.min(p.maxSanity, p.sanity + dt * 0.2);
+      activeAmulet.durability -= dt * 0.15;
+      if (activeAmulet.durability <= 0) {
+        if (p.equipped.amulet === activeAmulet) p.equipped.amulet = null;
+        else p.equipped.body = null;
+        showToast('极寒护符融化消散了...');
+        updateInventoryUI();
+      }
+    } else if (activeAmulet.id === 'nightmare_amulet') {
+      p.sanity = Math.max(0, p.sanity - dt * 2.5);
+      activeAmulet.durability -= dt * 0.2;
+      if (activeAmulet.durability <= 0) {
+        if (p.equipped.amulet === activeAmulet) p.equipped.amulet = null;
+        else p.equipped.body = null;
+        showToast('梦魇护符暗影碎裂！');
         updateInventoryUI();
       }
     }
+  }
+
+  // Eyebrella: 100% waterproof and lightning immunity
+  if (p.equipped.head && p.equipped.head.id === 'eyebrella') {
+    p.wetness = 0;
   }
 
   // Head Equipment perks
@@ -4390,6 +4794,314 @@ function update(dt) {
           createHitParticles(t.x, t.y, '#81d4fa');
           ent.fuel = Math.max(0, ent.fuel - 5);
           showToast('❄️ 雪球灭火机精准射击雪球！熄灭了火灾！');
+        }
+      }
+    } else if (ent.type === 'auto_harvester') {
+      ent.timer = (ent.timer || 0) + dt;
+      ent.armAngle = ((ent.armAngle || 0) + dt * 2.8) % (Math.PI * 2);
+      if (ent.timer >= 4) {
+        ent.timer = 0;
+        let harvestedItem = null;
+        let harvestedCnt = 1;
+        for (const t of state.entities) {
+          if (dist(ent.x, ent.y, t.x, t.y) <= (ent.range || 220)) {
+            if (t.type === 'bush' && t.hasBerries) {
+              t.hasBerries = false;
+              t.regrowTimer = 120;
+              harvestedItem = 'berry';
+              break;
+            } else if (t.type === 'sapling' && t.harvestable) {
+              t.harvestable = false;
+              t.regrowTimer = 120;
+              harvestedItem = 'twig';
+              break;
+            } else if (t.type === 'grass_tuft' && t.harvestable) {
+              t.harvestable = false;
+              t.regrowTimer = 120;
+              harvestedItem = 'grass';
+              break;
+            } else if (t.type === 'farmplot' && t.crop && t.stage >= 2) {
+              harvestedItem = t.crop;
+              harvestedCnt = t.isGiant ? 3 : 1;
+              t.crop = null;
+              t.stage = 0;
+              t.growTimer = 0;
+              t.isGiant = false;
+              break;
+            } else if (t.type === 'mushroom_planter' && t.ready && t.shroom) {
+              harvestedItem = t.shroom;
+              harvestedCnt = 4;
+              t.ready = false;
+              t.timer = 60;
+              break;
+            } else if (t.type === 'drying_rack' && t.ready && t.meat) {
+              harvestedItem = t.meat === 'monstermeat' ? 'monster_jerky' : 'jerky';
+              t.meat = null;
+              t.timer = 0;
+              t.ready = false;
+              break;
+            } else if (t.type === 'beebox' && t.honey >= 2) {
+              harvestedItem = 'honey';
+              harvestedCnt = Math.floor(t.honey);
+              t.honey = 0;
+              break;
+            }
+          }
+        }
+        if (harvestedItem) {
+          createHitParticles(ent.x, ent.y, '#ffd54f');
+          audio.playCraft();
+          // Deposit into nearby chest within 140px if exists
+          const nearbyChest = state.entities.find(c =>
+            (c.type === 'chest' || c.type === 'icebox' || c.type === 'vacuum_chest') &&
+            dist(ent.x, ent.y, c.x, c.y) < 140
+          );
+          let deposited = false;
+          if (nearbyChest) {
+            for (let i = 0; i < nearbyChest.items.length; i++) {
+              const s = nearbyChest.items[i];
+              if (s && s.id === harvestedItem && s.count < (ITEMS[harvestedItem]?.stack || 20)) {
+                s.count += harvestedCnt;
+                deposited = true;
+                break;
+              } else if (!s) {
+                nearbyChest.items[i] = { id: harvestedItem, count: harvestedCnt };
+                deposited = true;
+                break;
+              }
+            }
+          }
+          if (!deposited) {
+            dropWorldItem(harvestedItem, ent.x + (Math.random() - 0.5) * 24, ent.y + (Math.random() - 0.5) * 24, harvestedCnt);
+          }
+        }
+      }
+    } else if (ent.type === 'vacuum_chest') {
+      ent.timer = (ent.timer || 0) + dt;
+      if (ent.timer >= 1.2) {
+        ent.timer = 0;
+        for (const d of state.entities) {
+          if (d.type === 'drop') {
+            const distDrop = dist(ent.x, ent.y, d.x, d.y);
+            if (distDrop <= (ent.range || 180)) {
+              const pullAngle = Math.atan2(ent.y - d.y, ent.x - d.x);
+              d.x += Math.cos(pullAngle) * 95 * dt;
+              d.y += Math.sin(pullAngle) * 95 * dt;
+              if (distDrop < 30) {
+                for (let i = 0; i < ent.items.length; i++) {
+                  const s = ent.items[i];
+                  if (s && s.id === d.itemId && s.count < (ITEMS[d.itemId]?.stack || 20)) {
+                    s.count += d.count;
+                    state.entities = state.entities.filter(e => e !== d);
+                    audio.playPickup();
+                    createHitParticles(ent.x, ent.y, '#9575cd');
+                    break;
+                  } else if (!s) {
+                    ent.items[i] = {
+                      id: d.itemId,
+                      count: d.count,
+                      durability: d.durability,
+                      freshness: d.freshness,
+                      heatStored: d.heatStored
+                    };
+                    state.entities = state.entities.filter(e => e !== d);
+                    audio.playPickup();
+                    createHitParticles(ent.x, ent.y, '#9575cd');
+                    break;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    } else if (ent.type === 'sprinkler') {
+      ent.sprayAngle = ((ent.sprayAngle || 0) + dt * 4.5) % (Math.PI * 2);
+      for (const f of state.entities) {
+        if (dist(ent.x, ent.y, f.x, f.y) <= (ent.range || 220)) {
+          if (f.type === 'farmplot' && f.crop && f.stage < 2) {
+            f.growTimer += dt * 1.6;
+            // 35% chance of Giant Crop upon reaching mature stage!
+            if (f.growTimer >= 90) {
+              f.stage = 2;
+              if (Math.random() < 0.35) f.isGiant = true;
+            }
+          }
+          if (f.burning) {
+            f.burning = 0;
+            createHitParticles(f.x, f.y, '#4fc3f7');
+          }
+        }
+      }
+      if (state.season === 'summer' && dist(p.x, p.y, ent.x, ent.y) < 180) {
+        p.temp = Math.min(p.temp, 28);
+      }
+    } else if (ent.type === 'mushroom_planter' && ent.shroom && !ent.ready) {
+      ent.timer = (ent.timer || 60) - dt;
+      if (ent.timer <= 0) {
+        ent.ready = true;
+        showToast(`🍄 蘑菇木桩上的【${ITEMS[ent.shroom]?.name || '蘑菇'}】已经簇生成熟！`);
+      }
+    } else if (ent.type === 'dwarf_star') {
+      ent.lifetime = (ent.lifetime || 180) - dt;
+      if (ent.lifetime <= 0) {
+        state.entities = state.entities.filter(e => e !== ent);
+      } else {
+        if (dist(p.x, p.y, ent.x, ent.y) < 220) {
+          inLight = true;
+          p.sanity = Math.min(p.maxSanity, p.sanity + dt * 0.8);
+          if (p.temp < 30) p.temp += dt * 2.0;
+        }
+      }
+    } else if (ent.type === 'scaled_furnace') {
+      if (dist(p.x, p.y, ent.x, ent.y) < 200) {
+        inLight = true;
+        if (p.temp < 32) p.temp += dt * 2.5;
+        p.sanity = Math.min(p.maxSanity, p.sanity + dt * 0.4);
+      }
+    } else if (ent.type === 'houndius_shootius') {
+      ent.shootCooldown = (ent.shootCooldown || 0) - dt;
+      let targetMob = null;
+      let minTargetDist = 320;
+      for (const mob of state.entities) {
+        if (['spider', 'spider_warrior', 'spider_queen', 'hound', 'ice_hound', 'fire_hound',
+             'treeguard', 'deerclops', 'bearger', 'moosegoose', 'dragonfly', 'varg', 'crawling_horror', 'terrorbeak', 'werepig'].includes(mob.type)) {
+          const md = dist(ent.x, ent.y, mob.x, mob.y);
+          if (md < minTargetDist) {
+            minTargetDist = md;
+            targetMob = mob;
+          }
+        }
+      }
+      if (targetMob && ent.shootCooldown <= 0) {
+        ent.shootCooldown = 2.0;
+        targetMob.hp -= 65;
+        createHitParticles(targetMob.x, targetMob.y, '#e53935');
+        audio.playHit();
+        ent.laserTimer = 0.35;
+        ent.laserTarget = { x: targetMob.x, y: targetMob.y };
+      }
+      if (ent.laserTimer > 0) ent.laserTimer -= dt;
+    } else if (ent.type === 'shadow_lumberjack') {
+      let targetTree = null;
+      let minDist = 300;
+      for (const t of state.entities) {
+        if (t.type === 'tree') {
+          const td = dist(ent.x, ent.y, t.x, t.y);
+          if (td < minDist) { minDist = td; targetTree = t; }
+        }
+      }
+      if (targetTree) {
+        const ta = Math.atan2(targetTree.y - ent.y, targetTree.x - ent.x);
+        if (dist(ent.x, ent.y, targetTree.x, targetTree.y) > 28) {
+          ent.x += Math.cos(ta) * 110 * dt;
+          ent.y += Math.sin(ta) * 110 * dt;
+        } else {
+          ent.actionTimer = (ent.actionTimer || 0) + dt;
+          if (ent.actionTimer >= 0.6) {
+            ent.actionTimer = 0;
+            targetTree.hp--;
+            audio.playChop();
+            createHitParticles(targetTree.x, targetTree.y, '#8d6e63');
+            if (targetTree.hp <= 0) {
+              dropWorldItem('log', targetTree.x, targetTree.y, 3);
+              dropWorldItem('pinecone', targetTree.x + 10, targetTree.y, 1);
+              state.entities = state.entities.filter(e => e !== targetTree);
+            }
+          }
+        }
+      } else {
+        const pa = Math.atan2(p.y - ent.y, p.x - ent.x);
+        if (dist(ent.x, ent.y, p.x, p.y) > 60) {
+          ent.x += Math.cos(pa) * 100 * dt;
+          ent.y += Math.sin(pa) * 100 * dt;
+        }
+      }
+    } else if (ent.type === 'shadow_miner') {
+      let targetRock = null;
+      let minDist = 300;
+      for (const r of state.entities) {
+        if (r.type === 'rock' || r.type === 'stalagmite') {
+          const rd = dist(ent.x, ent.y, r.x, r.y);
+          if (rd < minDist) { minDist = rd; targetRock = r; }
+        }
+      }
+      if (targetRock) {
+        const ra = Math.atan2(targetRock.y - ent.y, targetRock.x - ent.x);
+        if (dist(ent.x, ent.y, targetRock.x, targetRock.y) > 28) {
+          ent.x += Math.cos(ra) * 110 * dt;
+          ent.y += Math.sin(ra) * 110 * dt;
+        } else {
+          ent.actionTimer = (ent.actionTimer || 0) + dt;
+          if (ent.actionTimer >= 0.6) {
+            ent.actionTimer = 0;
+            targetRock.hp--;
+            audio.playMine();
+            createHitParticles(targetRock.x, targetRock.y, '#78909c');
+            if (targetRock.hp <= 0) {
+              dropWorldItem('rock', targetRock.x, targetRock.y, 3);
+              dropWorldItem('flint', targetRock.x + 10, targetRock.y, 2);
+              if (targetRock.hasGold) dropWorldItem('gold', targetRock.x - 10, targetRock.y, 1);
+              state.entities = state.entities.filter(e => e !== targetRock);
+            }
+          }
+        }
+      } else {
+        const pa = Math.atan2(p.y - ent.y, p.x - ent.x);
+        if (dist(ent.x, ent.y, p.x, p.y) > 60) {
+          ent.x += Math.cos(pa) * 100 * dt;
+          ent.y += Math.sin(pa) * 100 * dt;
+        }
+      }
+    } else if (ent.type === 'shadow_duelist') {
+      let targetMob = null;
+      let minDist = 250;
+      for (const mob of state.entities) {
+        if (['spider', 'hound', 'ice_hound', 'fire_hound', 'treeguard', 'werepig'].includes(mob.type)) {
+          const md = dist(ent.x, ent.y, mob.x, mob.y);
+          if (md < minDist) { minDist = md; targetMob = mob; }
+        }
+      }
+      if (targetMob) {
+        const ma = Math.atan2(targetMob.y - ent.y, targetMob.x - ent.x);
+        if (dist(ent.x, ent.y, targetMob.x, targetMob.y) > 30) {
+          ent.x += Math.cos(ma) * 120 * dt;
+          ent.y += Math.sin(ma) * 120 * dt;
+        } else {
+          ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+          if (ent.attackCooldown <= 0) {
+            ent.attackCooldown = 0.9;
+            targetMob.hp -= 45;
+            audio.playHit();
+            createHitParticles(targetMob.x, targetMob.y, '#ab47bc');
+          }
+        }
+      } else {
+        const pa = Math.atan2(p.y - ent.y, p.x - ent.x);
+        if (dist(ent.x, ent.y, p.x, p.y) > 60) {
+          ent.x += Math.cos(pa) * 100 * dt;
+          ent.y += Math.sin(pa) * 100 * dt;
+        }
+      }
+    } else if (ent.type === 'werepig') {
+      const wd = dist(p.x, p.y, ent.x, ent.y);
+      if (wd < 260) {
+        const wa = Math.atan2(p.y - ent.y, p.x - ent.x);
+        if (wd > 32) {
+          ent.x += Math.cos(wa) * 115 * dt;
+          ent.y += Math.sin(wa) * 115 * dt;
+        } else {
+          ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+          if (ent.attackCooldown <= 0) {
+            ent.attackCooldown = 1.3;
+            audio.playHit();
+            let wdmg = 35;
+            if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
+              wdmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+            }
+            p.hp -= wdmg;
+            showToast('受到残暴疯猪猛烈扑抓撕咬！(-35HP)');
+          }
         }
       }
     }
@@ -7454,6 +8166,13 @@ function drawEntity(ent) {
       ctx.lineWidth = 1.5;
       ctx.strokeRect(-10, -18, 20, 10);
     }
+    // Tendency & Domestication Badge
+    if (ent.domestication > 0) {
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 10px sans-serif';
+      const tLabel = ent.tendency === 'war' ? '⚔️战牛' : (ent.tendency === 'racer' ? '⚡奔跑牛' : (ent.tendency === 'pudgy' ? '🌾肥牛' : '🐂驯化'));
+      ctx.fillText(`${tLabel} ${ent.domestication}%`, -22, -34);
+    }
   } else if (ent.type === 'pig_king') {
     ctx.fillStyle = '#f48fb1';
     ctx.beginPath();
@@ -8682,6 +9401,120 @@ function drawEntity(ent) {
     ctx.moveTo(0, -24); ctx.lineTo(0, 8);
     ctx.moveTo(5, -24); ctx.lineTo(5, 8);
     ctx.stroke();
+  } else if (ent.type === 'auto_harvester') {
+    // Steampunk Clockwork Harvester
+    ctx.fillStyle = '#424242';
+    ctx.beginPath(); ctx.ellipse(0, 10, 26, 12, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffb300';
+    ctx.beginPath(); ctx.arc(0, -4, 16, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#37474f';
+    ctx.beginPath(); ctx.arc(0, -4, 10, 0, Math.PI * 2); ctx.fill();
+    // Rotating articulated arm
+    const armAngle = ent.armAngle || 0;
+    ctx.save();
+    ctx.translate(0, -4);
+    ctx.rotate(armAngle);
+    ctx.fillStyle = '#b0bec5';
+    ctx.fillRect(0, -3, 24, 6);
+    ctx.fillStyle = '#d32f2f';
+    ctx.beginPath();
+    ctx.moveTo(24, -3); ctx.lineTo(34, -10); ctx.lineTo(28, 3); ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+    // Blue diode light
+    ctx.fillStyle = '#29b6f6';
+    ctx.beginPath(); ctx.arc(0, -22, 4, 0, Math.PI * 2); ctx.fill();
+  } else if (ent.type === 'vacuum_chest') {
+    // Arcane Vortex Void Chest
+    ctx.fillStyle = '#311b92';
+    ctx.fillRect(-18, -12, 36, 26);
+    ctx.strokeStyle = '#b388ff';
+    ctx.lineWidth = 2.5;
+    ctx.strokeRect(-18, -12, 36, 26);
+    // Pulsing vortex aperture
+    const vPulse = Math.sin(Date.now() / 200) * 2;
+    ctx.fillStyle = '#7e57c2';
+    ctx.beginPath(); ctx.arc(0, 0, 8 + vPulse, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#d1c4e9';
+    ctx.beginPath(); ctx.arc(0, 0, 3, 0, Math.PI * 2); ctx.fill();
+  } else if (ent.type === 'sprinkler') {
+    // Irrigation Sprinkler
+    ctx.fillStyle = '#0288d1';
+    ctx.fillRect(-12, -4, 24, 20);
+    ctx.fillStyle = '#b0bec5';
+    ctx.fillRect(-3, -20, 6, 16);
+    // Spinning sprinkler head & spray mist
+    const spAngle = ent.sprayAngle || 0;
+    ctx.save();
+    ctx.translate(0, -20);
+    ctx.rotate(spAngle);
+    ctx.fillStyle = '#ffd54f';
+    ctx.fillRect(-14, -2, 28, 4);
+    ctx.fillStyle = 'rgba(129, 212, 250, 0.65)';
+    ctx.beginPath(); ctx.arc(16, 0, 8, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(-16, 0, 8, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  } else if (ent.type === 'mushroom_planter') {
+    // Weathered birch log
+    ctx.fillStyle = '#eceff1';
+    ctx.fillRect(-18, -8, 36, 16);
+    ctx.fillStyle = '#37474f';
+    ctx.fillRect(-12, -6, 5, 3);
+    ctx.fillRect(4, 2, 6, 3);
+    // Sprouting mushrooms
+    if (ent.ready && ent.shroom) {
+      const shroomColor = ent.shroom === 'blue_mushroom' ? '#1e88e5' : (ent.shroom === 'green_mushroom' ? '#43a047' : '#e53935');
+      for (let i = -12; i <= 12; i += 8) {
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(i - 1, -16, 2, 8);
+        ctx.fillStyle = shroomColor;
+        ctx.beginPath(); ctx.arc(i, -16, 6, 0, Math.PI, true); ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(i - 2, -18, 1.5, 1.5);
+        ctx.fillRect(i + 1, -19, 1.5, 1.5);
+      }
+    } else if (ent.shroom) {
+      ctx.fillStyle = '#81c784';
+      ctx.beginPath(); ctx.arc(-4, -8, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(4, -8, 3, 0, Math.PI * 2); ctx.fill();
+    }
+  } else if (ent.type === 'dwarf_star') {
+    // Radiant Dwarf Star
+    const sPulse = Math.sin(Date.now() / 150) * 3;
+    ctx.fillStyle = 'rgba(255, 152, 0, 0.4)';
+    ctx.beginPath(); ctx.arc(0, 0, 24 + sPulse, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffb300';
+    ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#fffde7';
+    ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill();
+  } else if (ent.type === 'shadow_lumberjack' || ent.type === 'shadow_miner' || ent.type === 'shadow_duelist') {
+    // Shadow Minions
+    ctx.fillStyle = 'rgba(33, 33, 33, 0.85)';
+    ctx.beginPath(); ctx.ellipse(0, 0, 14, 22, 0, 0, Math.PI * 2); ctx.fill();
+    // Purple eyes
+    ctx.fillStyle = '#ea80fc';
+    ctx.fillRect(-5, -12, 3, 3);
+    ctx.fillRect(2, -12, 3, 3);
+    // Tool
+    ctx.strokeStyle = '#ce93d8';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(10, 4);
+    ctx.lineTo(18, -14);
+    ctx.stroke();
+  } else if (ent.type === 'werepig') {
+    // Feral Werepig
+    ctx.fillStyle = '#212121';
+    ctx.beginPath(); ctx.ellipse(0, 0, 26, 28, 0, 0, Math.PI * 2); ctx.fill();
+    // Red eyes & tusks
+    ctx.fillStyle = '#d50000';
+    ctx.fillRect(-10, -14, 5, 4);
+    ctx.fillRect(5, -14, 5, 4);
+    ctx.fillStyle = '#fff9c4';
+    ctx.beginPath();
+    ctx.moveTo(-8, 2); ctx.lineTo(-12, -8); ctx.lineTo(-6, -2);
+    ctx.moveTo(8, 2); ctx.lineTo(12, -8); ctx.lineTo(6, -2);
+    ctx.fill();
   }
 
   ctx.restore();
@@ -9235,6 +10068,28 @@ function setupInputs() {
     const rect = canvas.getBoundingClientRect();
     const clickWorldX = e.clientX - rect.left + state.camera.x;
     const clickWorldY = e.clientY - rect.top + state.camera.y;
+
+    // Check Blink Wand (The Lazy Explorer) Instant Teleportation
+    if (state.player.equipped.hand && state.player.equipped.hand.id === 'the_lazy_explorer') {
+      const d = dist(state.player.x, state.player.y, clickWorldX, clickWorldY);
+      if (d <= 420 && getBiomeAt(clickWorldX, clickWorldY) !== 'ocean') {
+        createHitParticles(state.player.x, state.player.y, '#ffa726');
+        state.player.x = clickWorldX;
+        state.player.y = clickWorldY;
+        createHitParticles(state.player.x, state.player.y, '#ffa726');
+        audio.playMagic();
+        state.player.sanity = Math.max(0, state.player.sanity - 5);
+        state.player.equipped.hand.durability -= 1;
+        if (state.player.equipped.hand.durability <= 0) {
+          state.player.equipped.hand = null;
+          showToast('瞬移懒人杖耗尽空间魔力碎裂！');
+        } else {
+          showToast(`✨ 空间折跃瞬移！剩余耐久: ${state.player.equipped.hand.durability}`);
+        }
+        updateInventoryUI();
+        return;
+      }
+    }
 
     // Check if clicked directly on a hostile mob
     for (const ent of state.entities) {

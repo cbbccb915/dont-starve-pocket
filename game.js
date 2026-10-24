@@ -9351,11 +9351,12 @@ function setupInputs() {
     console.warn('popstate guard failed:', err);
   }
 
-  window.addEventListener('beforeunload', (e) => {
+  // Graceful auto-save on page hide without disturbing the user with browser warning dialogs
+  window.addEventListener('pagehide', () => {
     if (state.started && !state.gameOver) {
-      e.preventDefault();
-      e.returnValue = '荒野求生正在进行中，离开将失去未保存进度，确认退出吗？';
-      return e.returnValue;
+      try {
+        saveGame(0);
+      } catch (err) {}
     }
   });
 
@@ -9391,7 +9392,6 @@ function setupInputs() {
   });
 
   // Blueprint Dragging on Canvas
-  const canvas = document.getElementById('game-canvas');
   const handleBlueprintMove = (clientX, clientY) => {
     if (!state.blueprint || !state.blueprint.active) return;
     const rect = canvas.getBoundingClientRect();

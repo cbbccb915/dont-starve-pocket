@@ -412,7 +412,10 @@ const ITEMS = {
   thulecite_suit: { id: 'thulecite_suit', name: '铥矿战甲', icon: '🛡️🔶', desc: '远古神装胸甲，吸收 90% 伤害！', equipSlot: 'body', durability: 650, armorDefense: 0.90 },
   thulecite_crown: { id: 'thulecite_crown', name: '远古皇冠', icon: '👑🔶', desc: '受击时触发吸收力场，吸收 90% 伤害！', equipSlot: 'head', durability: 500, armorDefense: 0.90 },
   pan_flute: { id: 'pan_flute', name: '排箫', icon: '🪈✨', desc: '吹响天籁音律，催眠范围所有狂暴敌人！', stack: 1, durability: 10 },
-  life_amulet: { id: 'life_amulet', name: '生命护符', icon: '📿💖', desc: '佩戴缓慢回血，死亡时当场消耗护符神圣复活！', equipSlot: 'body', durability: 120, lifeRevive: true },
+  life_amulet: { id: 'life_amulet', name: '生命护符', icon: '📿💖', desc: '佩戴缓慢消耗耐久回血，死亡时当场消耗护符神圣复活！', equipSlot: 'amulet', durability: 120, lifeRevive: true },
+  chilled_amulet: { id: 'chilled_amulet', name: '极寒护符', icon: '📿❄️', desc: '散发极寒灵气避暑，受击时直接冻结来犯敌人！', equipSlot: 'amulet', durability: 120 },
+  nightmare_amulet: { id: 'nightmare_amulet', name: '梦魇护符', icon: '📿🔮', desc: '佩戴大幅降低理智，可随意穿梭现实与暗影维度。', equipSlot: 'amulet', durability: 120 },
+  cane: { id: 'cane', name: '步行手杖', icon: '🦯✨', desc: '手持移速提升 25%！荒野探图跑位神器。', equipSlot: 'hand', speedBonus: 1.25 },
   fire_staff: { id: 'fire_staff', name: '火魔杖', icon: '🪄🔥', desc: '远程施放烈焰法球，引燃目标造成高额火焰伤害！', equipSlot: 'hand', durability: 20, weaponDamage: 25, isStaff: 'fire' },
   ice_staff: { id: 'ice_staff', name: '冰魔杖', icon: '🪄❄️', desc: '发射寒冰飞弹，冰冻敌人使其无法移动攻击！', equipSlot: 'hand', durability: 20, weaponDamage: 12, isStaff: 'ice' },
   bat_bat: { id: 'bat_bat', name: '蝙蝠棒', icon: '🦇🏏', desc: '吸血武器！42点攻击，击中吸取 7 点生命！', equipSlot: 'hand', durability: 75, weaponDamage: 42, lifesteal: 7 },
@@ -732,11 +735,12 @@ const state = {
     inDarknessTimer: 0,
     whisperTimer: 0,
 
-    // Equipped slots
+    // Equipped slots (Hand, Head, Body, Amulet)
     equipped: {
       hand: null,
       head: null,
-      body: null
+      body: null,
+      amulet: null
     },
 
     // 10 Hotbar slots + 8 Backpack slots
@@ -748,8 +752,12 @@ const state = {
   entities: [],
   particles: [],
 
+  // Survival Difficulty ('easy', 'normal', 'hard')
+  difficulty: 'normal',
+  blueprint: null,
+
   // Hound pack cycle
-  houndTimer: 450, // spawns hound wave every ~4-5 in-game days
+  houndTimer: 600,
   houndWarning: false,
 
   // Four Seasonal Giants Flags
@@ -953,17 +961,21 @@ function updateInventoryUI() {
     backpackBar.classList.add('hidden');
   }
 
-  // Update 3 Equipped Slots (Hand, Head, Body)
+  // Update 4 Equipped Slots (Hand, Head, Body, Amulet)
   const handDef = state.player.equipped.hand ? ITEMS[state.player.equipped.hand.id] : null;
   document.getElementById('icon-equip-hand').innerText = handDef ? handDef.icon : '空';
   const headDef = state.player.equipped.head ? ITEMS[state.player.equipped.head.id] : null;
   document.getElementById('icon-equip-head').innerText = headDef ? headDef.icon : '空';
   const bodyDef = state.player.equipped.body ? ITEMS[state.player.equipped.body.id] : null;
   document.getElementById('icon-equip-body').innerText = bodyDef ? bodyDef.icon : '空';
+  const amuletDef = state.player.equipped.amulet ? ITEMS[state.player.equipped.amulet.id] : null;
+  const amuletIconEl = document.getElementById('icon-equip-amulet');
+  if (amuletIconEl) amuletIconEl.innerText = amuletDef ? amuletDef.icon : '空';
 
   // Durability bars
-  ['hand', 'head', 'body'].forEach(slotKey => {
+  ['hand', 'head', 'body', 'amulet'].forEach(slotKey => {
     const el = document.getElementById(`dur-${slotKey}`);
+    if (!el) return;
     const eq = state.player.equipped[slotKey];
     if (eq && eq.durability !== null && ITEMS[eq.id]?.durability) {
       const pct = Math.max(0, (eq.durability / ITEMS[eq.id].durability) * 100);
@@ -1003,9 +1015,14 @@ function createSlotElement(slot, source, index) {
 }
 
 function onSlotClicked(source, index) {
-  const slots = getSlotArray(source);
-  if (!slots) return;
-  const slot = slots[index];
+  let slot = null;
+  if (source === 'equip') {
+    slot = state.player.equipped[index];
+  } else {
+    const slots = getSlotArray(source);
+    if (!slots) return;
+    slot = slots[index];
+  }
   if (!slot) {
     closePopover();
     return;
@@ -1031,7 +1048,10 @@ function onSlotClicked(source, index) {
   const btnUse = document.getElementById('btn-action-use');
   const btnCook = document.getElementById('btn-action-cook');
 
-  if (slot.id === 'rabbit_item') {
+  if (source === 'equip') {
+    btnUse.innerText = '卸下装备';
+    btnUse.style.display = 'inline-block';
+  } else if (slot.id === 'rabbit_item') {
     btnUse.innerText = '杀掉 (生小肉)';
     btnUse.style.display = 'inline-block';
   } else if (slot.id === 'abigail_flower') {
@@ -1082,6 +1102,21 @@ function closePopover() {
 }
 
 function useCurrentItem(source, index) {
+  if (source === 'equip') {
+    const eq = state.player.equipped[index];
+    if (eq) {
+      if (addToPlayer(eq.id, eq.count || 1, { durability: eq.durability, freshness: eq.freshness, heatStored: eq.heatStored })) {
+        state.player.equipped[index] = null;
+        audio.playPickup();
+        showToast(`卸下了 ${ITEMS[eq.id]?.name || eq.id}`);
+        closePopover();
+        updateInventoryUI();
+      } else {
+        showToast('随身背包已满，无法卸下！');
+      }
+    }
+    return;
+  }
   const slots = getSlotArray(source);
   if (!slots) return;
   const slot = slots[index];
@@ -1160,11 +1195,9 @@ function useCurrentItem(source, index) {
     audio.playPickup();
     showToast(`装备了 ${def.name}`);
   } else if (def.isPlaceable) {
-    const px = p.x + (p.facing === 'left' ? -45 : 45);
-    const py = p.y;
-    deployStructure(def.isPlaceable, px, py);
-    slot.count--;
-    if (slot.count <= 0) slots[index] = null;
+    closePopover();
+    startBlueprintPlacement(def.isPlaceable, 'inventory', { source, index });
+    return;
   }
 
   closePopover();
@@ -1206,37 +1239,39 @@ function dropCurrentItem(source, index) {
   updateInventoryUI();
 }
 
-function deployStructure(type, x, y) {
+function deployStructure(type, x, y, rotation) {
   audio.playCraft();
+  const rot = rotation || 0;
+  createHitParticles(x, y, '#d4a373');
   if (type === 'campfire') {
-    state.entities.push({ type: 'campfire', x, y, fuel: 85, maxFuel: 100, radius: 24, isPermanent: false });
+    state.entities.push({ type: 'campfire', x, y, fuel: 85, maxFuel: 100, radius: 24, isPermanent: false, rotation: rot });
     showToast('建造了临时营火！');
   } else if (type === 'firepit') {
-    state.entities.push({ type: 'firepit', x, y, fuel: 110, maxFuel: 150, radius: 24, isPermanent: true });
+    state.entities.push({ type: 'firepit', x, y, fuel: 110, maxFuel: 150, radius: 24, isPermanent: true, rotation: rot });
     showToast('建造了石质火坑！');
   } else if (type === 'science_machine') {
-    state.entities.push({ type: 'science_machine', x, y, radius: 28 });
+    state.entities.push({ type: 'science_machine', x, y, radius: 28, rotation: rot });
     showToast('发明了【科学仪器】！一本科技已解锁！');
   } else if (type === 'alchemy_engine') {
-    state.entities.push({ type: 'alchemy_engine', x, y, radius: 30 });
+    state.entities.push({ type: 'alchemy_engine', x, y, radius: 30, rotation: rot });
     showToast('发明了【炼金引擎】！二本科技已解锁！');
   } else if (type === 'chest') {
-    state.entities.push({ type: 'chest', x, y, radius: 22, items: new Array(9).fill(null) });
+    state.entities.push({ type: 'chest', x, y, radius: 22, items: new Array(9).fill(null), rotation: rot });
     showToast('建造了储物木箱！');
   } else if (type === 'crockpot') {
-    state.entities.push({ type: 'crockpot', x, y, radius: 26, ingredients: [null, null, null, null], cooking: false, cookTimer: 0 });
+    state.entities.push({ type: 'crockpot', x, y, radius: 26, ingredients: [null, null, null, null], cooking: false, cookTimer: 0, rotation: rot });
     showToast('建造了瓦罐烹饪锅！');
   } else if (type === 'icebox') {
-    state.entities.push({ type: 'icebox', x, y, radius: 24, items: new Array(9).fill(null) });
+    state.entities.push({ type: 'icebox', x, y, radius: 24, items: new Array(9).fill(null), rotation: rot });
     showToast('建造了雪柜冰箱！');
   } else if (type === 'tent') {
-    state.entities.push({ type: 'tent', x, y, radius: 32, uses: 6 });
+    state.entities.push({ type: 'tent', x, y, radius: 32, uses: 6, rotation: rot });
     showToast('搭建了野营帐篷！');
   } else if (type === 'lightning_rod') {
-    state.entities.push({ type: 'lightning_rod', x, y, radius: 20 });
+    state.entities.push({ type: 'lightning_rod', x, y, radius: 20, rotation: rot });
     showToast('安装了避雷针！');
   } else if (type === 'tooth_trap') {
-    state.entities.push({ type: 'tooth_trap', x, y, radius: 16, armed: true });
+    state.entities.push({ type: 'tooth_trap', x, y, radius: 16, armed: true, rotation: rot });
     showToast('布置了犬牙陷阱！');
   } else if (type === 'meat_effigy') {
     state.entities.push({ type: 'meat_effigy', x, y, radius: 22, active: true });
@@ -1253,17 +1288,17 @@ function deployStructure(type, x, y) {
     state.entities.push({ type: 'farmplot', x, y, radius: 28, crop: null, stage: 0, growTimer: 0 });
     showToast('🌾 开辟了改良农田！手持种子即可播种！');
   } else if (type === 'flingomatic') {
-    state.entities.push({ type: 'flingomatic', x, y, radius: 30, active: true, fuel: 100, maxFuel: 100, range: 260 });
+    state.entities.push({ type: 'flingomatic', x, y, radius: 30, active: true, fuel: 100, maxFuel: 100, range: 260, rotation: rot });
     showToast('❄️ 建造了雪球灭火机！将在夏季自动侦测火情发射雪球灭火！');
     if (state.diary) state.diary.chapters.ch4 = true;
   } else if (type === 'drying_rack') {
-    state.entities.push({ type: 'drying_rack', x, y, radius: 24, meat: null, timer: 0, ready: false });
+    state.entities.push({ type: 'drying_rack', x, y, radius: 24, meat: null, timer: 0, ready: false, rotation: rot });
     showToast('🥩 搭建了晾肉架！可将大肉或怪物肉悬挂风干成高饱食大肉干！');
   } else if (type === 'birdcage') {
-    state.entities.push({ type: 'birdcage', x, y, radius: 26, hasBird: false, birdType: null });
+    state.entities.push({ type: 'birdcage', x, y, radius: 26, hasBird: false, birdType: null, rotation: rot });
     showToast('🦜 建造了镀金鸟笼！可将捕获的活鸟放入驯养，喂肉产蛋/喂果蔬产良种！');
   } else if (type === 'beebox') {
-    state.entities.push({ type: 'beebox', x, y, radius: 26, honey: 0, maxHoney: 6, prodTimer: 0 });
+    state.entities.push({ type: 'beebox', x, y, radius: 26, honey: 0, maxHoney: 6, prodTimer: 0, rotation: rot });
     showToast('🐝 搭建了蜂箱！工蜂将开始酿造纯正天然蜂蜜！');
     if (state.diary) state.diary.chapters.ch3 = true;
   } else if (type === 'boat') {
@@ -1285,6 +1320,7 @@ function deployStructure(type, x, y) {
 
 // Chest Container Modal Logic
 function openChestUI(chestEnt) {
+  window.lastModalOpenTime = Date.now();
   state.openedChest = chestEnt;
   const modal = document.getElementById('chest-modal');
   modal.classList.remove('hidden');
@@ -1300,38 +1336,77 @@ function updateChestSlots() {
   if (!state.openedChest) return;
   const grid = document.getElementById('chest-grid');
   grid.innerHTML = '';
+  // 1. Chest own slots
   state.openedChest.items.forEach((slot, idx) => {
     const el = createSlotElement(slot, 'chest', idx);
-    el.onclick = () => {
-      // Transfer between chest and player inventory
+    el.onclick = (e) => {
+      e.stopPropagation();
       if (slot) {
         if (addToPlayer(slot.id, slot.count, { durability: slot.durability, freshness: slot.freshness, heatStored: slot.heatStored })) {
           state.openedChest.items[idx] = null;
           audio.playPickup();
           updateChestSlots();
           updateInventoryUI();
-        }
-      } else {
-        // Find first item in player inventory to put into chest
-        for (let j = 0; j < state.player.inventory.length; j++) {
-          const invSlot = state.player.inventory[j];
-          if (invSlot) {
-            state.openedChest.items[idx] = { ...invSlot };
-            state.player.inventory[j] = null;
-            audio.playPickup();
-            updateChestSlots();
-            updateInventoryUI();
-            break;
-          }
+        } else {
+          showToast('随身背包已满！');
         }
       }
     };
     grid.appendChild(el);
   });
+
+  // 2. Player Inventory Grid inside Chest Modal
+  const playerGrid = document.getElementById('chest-player-grid');
+  if (playerGrid) {
+    playerGrid.innerHTML = '';
+    state.player.inventory.forEach((invSlot, invIdx) => {
+      const el = createSlotElement(invSlot, 'inv', invIdx);
+      el.onclick = (e) => {
+        e.stopPropagation();
+        if (invSlot) {
+          let deposited = false;
+          const itemDef = ITEMS[invSlot.id];
+          if (itemDef?.stack && itemDef.stack > 1) {
+            for (let c = 0; c < state.openedChest.items.length; c++) {
+              const cs = state.openedChest.items[c];
+              if (cs && cs.id === invSlot.id && cs.count < itemDef.stack) {
+                const space = itemDef.stack - cs.count;
+                const addAmt = Math.min(space, invSlot.count);
+                cs.count += addAmt;
+                invSlot.count -= addAmt;
+                if (invSlot.count <= 0) state.player.inventory[invIdx] = null;
+                deposited = true;
+                break;
+              }
+            }
+          }
+          if (!deposited) {
+            for (let c = 0; c < state.openedChest.items.length; c++) {
+              if (!state.openedChest.items[c]) {
+                state.openedChest.items[c] = { ...invSlot };
+                state.player.inventory[invIdx] = null;
+                deposited = true;
+                break;
+              }
+            }
+          }
+          if (deposited) {
+            audio.playPickup();
+            updateChestSlots();
+            updateInventoryUI();
+          } else {
+            showToast('木箱储物格已满！');
+          }
+        }
+      };
+      playerGrid.appendChild(el);
+    });
+  }
 }
 
 // Chester Companion Modal Logic
 function openChesterUI() {
+  window.lastModalOpenTime = Date.now();
   state.openedChester = true;
   const modal = document.getElementById('chester-modal');
   modal.classList.remove('hidden');
@@ -1361,32 +1436,72 @@ function updateChesterSlots() {
     while (state.chester.slots.length < slotCount) state.chester.slots.push(null);
   }
 
+  // 1. Chester own slots
   state.chester.slots.slice(0, slotCount).forEach((slot, idx) => {
     const el = createSlotElement(slot, 'chester', idx);
-    el.onclick = () => {
+    el.onclick = (e) => {
+      e.stopPropagation();
       if (slot) {
         if (addToPlayer(slot.id, slot.count, { durability: slot.durability, freshness: slot.freshness, heatStored: slot.heatStored })) {
           state.chester.slots[idx] = null;
           audio.playChester();
           updateChesterSlots();
           updateInventoryUI();
-        }
-      } else {
-        for (let j = 0; j < state.player.inventory.length; j++) {
-          const invSlot = state.player.inventory[j];
-          if (invSlot) {
-            state.chester.slots[idx] = { ...invSlot };
-            state.player.inventory[j] = null;
-            audio.playChester();
-            updateChesterSlots();
-            updateInventoryUI();
-            break;
-          }
+        } else {
+          showToast('随身背包已满！');
         }
       }
     };
     grid.appendChild(el);
   });
+
+  // 2. Player Inventory Grid inside Chester Modal
+  const playerGrid = document.getElementById('chester-player-grid');
+  if (playerGrid) {
+    playerGrid.innerHTML = '';
+    state.player.inventory.forEach((invSlot, invIdx) => {
+      const el = createSlotElement(invSlot, 'inv', invIdx);
+      el.onclick = (e) => {
+        e.stopPropagation();
+        if (invSlot) {
+          let deposited = false;
+          const itemDef = ITEMS[invSlot.id];
+          if (itemDef?.stack && itemDef.stack > 1) {
+            for (let c = 0; c < slotCount; c++) {
+              const cs = state.chester.slots[c];
+              if (cs && cs.id === invSlot.id && cs.count < itemDef.stack) {
+                const space = itemDef.stack - cs.count;
+                const addAmt = Math.min(space, invSlot.count);
+                cs.count += addAmt;
+                invSlot.count -= addAmt;
+                if (invSlot.count <= 0) state.player.inventory[invIdx] = null;
+                deposited = true;
+                break;
+              }
+            }
+          }
+          if (!deposited) {
+            for (let c = 0; c < slotCount; c++) {
+              if (!state.chester.slots[c]) {
+                state.chester.slots[c] = { ...invSlot };
+                state.player.inventory[invIdx] = null;
+                deposited = true;
+                break;
+              }
+            }
+          }
+          if (deposited) {
+            audio.playChester();
+            updateChesterSlots();
+            updateInventoryUI();
+          } else {
+            showToast('切斯特储物格已满！');
+          }
+        }
+      };
+      playerGrid.appendChild(el);
+    });
+  }
 }
 
 function checkChesterTransformation() {
@@ -1669,8 +1784,15 @@ function craftRecipe(rec) {
     if (rec.id === 'science_machine_item') state.diary.milestones.science_rev = true;
   }
 
-  // Auto-equip tools or weapons if corresponding slot is empty
+  // Check if placeable building structure -> launch Blueprint Mode
   const itemDef = ITEMS[rec.id];
+  if (itemDef?.isPlaceable) {
+    closeCraftingDrawer();
+    startBlueprintPlacement(itemDef.isPlaceable, 'craft', null, rec);
+    return;
+  }
+
+  // Auto-equip tools or weapons if corresponding slot is empty
   if (itemDef?.equipSlot && !state.player.equipped[itemDef.equipSlot]) {
     state.player.equipped[itemDef.equipSlot] = {
       id: rec.id,
@@ -1740,6 +1862,131 @@ function updateRecipesUI() {
 
     container.appendChild(card);
   });
+}
+
+
+// --- Blueprint Placement System ---
+function startBlueprintPlacement(structureType, source, sourceSlot, recipe) {
+  const p = state.player;
+  state.blueprint = {
+    active: true,
+    structureType: structureType,
+    name: ITEMS[structureType + '_item']?.name || structureType,
+    x: p.x + (p.facing === 'left' ? -65 : 65),
+    y: p.y,
+    rotation: 0,
+    source: source,
+    sourceSlot: sourceSlot,
+    recipe: recipe,
+    valid: true
+  };
+
+  const hud = document.getElementById('blueprint-hud');
+  if (hud) {
+    document.getElementById('bp-name-text').innerText = `📐 建造蓝图: ${state.blueprint.name}`;
+    document.getElementById('bp-rot-deg').innerText = '0°';
+    hud.classList.remove('hidden');
+  }
+  showToast(`📐 已开启【${state.blueprint.name}】蓝图放置，请微调位置与朝向`);
+}
+
+function checkBlueprintValidity(x, y, structureType) {
+  if (x < 150 || x > state.worldWidth - 150 || y < 150 || y > state.worldHeight - 150) return false;
+  const b = getBiomeAt(x, y);
+  if (structureType === 'boat') {
+    if (b !== 'ocean') return false;
+  } else {
+    if (b === 'ocean') return false;
+  }
+  for (const ent of state.entities) {
+    if (['tree', 'rock', 'chest', 'firepit', 'campfire', 'science_machine', 'alchemy_engine', 'crockpot', 'tent', 'flingomatic', 'drying_rack', 'beebox', 'pig_house', 'merm_house'].includes(ent.type)) {
+      if (dist(x, y, ent.x, ent.y) < 32) return false;
+    }
+  }
+  return true;
+}
+
+function renderBlueprintGhost(ctx) {
+  if (!state.blueprint || !state.blueprint.active) return;
+  const bp = state.blueprint;
+  const p = state.player;
+  const cam = state.camera;
+
+  const bx = bp.x - cam.x;
+  const by = bp.y - cam.y;
+  const px = p.x - cam.x;
+  const py = p.y - cam.y;
+
+  ctx.save();
+
+  // Tether guideline
+  ctx.strokeStyle = bp.valid ? 'rgba(46, 204, 113, 0.45)' : 'rgba(231, 76, 60, 0.45)';
+  ctx.setLineDash([6, 4]);
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(px, py);
+  ctx.lineTo(bx, by);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  ctx.translate(bx, by);
+  ctx.rotate((bp.rotation * Math.PI) / 180);
+
+  // Pulsing circle
+  const pulse = Math.sin(Date.now() / 160) * 0.15;
+  ctx.fillStyle = bp.valid ? `rgba(46, 204, 113, ${0.25 + pulse})` : `rgba(231, 76, 60, ${0.35 + pulse})`;
+  ctx.strokeStyle = bp.valid ? '#2ecc71' : '#e74c3c';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(0, 0, 32, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Pointer arrow
+  ctx.fillStyle = bp.valid ? '#2ecc71' : '#e74c3c';
+  ctx.beginPath();
+  ctx.moveTo(0, -38);
+  ctx.lineTo(-9, -24);
+  ctx.lineTo(9, -24);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.globalAlpha = 0.75 + pulse;
+  drawStructurePreview(ctx, bp.structureType);
+
+  ctx.restore();
+}
+
+function drawStructurePreview(ctx, type) {
+  if (type === 'campfire' || type === 'firepit') {
+    ctx.fillStyle = '#795548';
+    ctx.fillRect(-12, -4, 24, 8);
+    ctx.fillRect(-4, -12, 8, 24);
+    ctx.fillStyle = '#ff9800';
+    ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill();
+  } else if (type === 'science_machine' || type === 'alchemy_engine') {
+    ctx.fillStyle = '#ffd700';
+    ctx.beginPath(); ctx.arc(0, -6, 14, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#424242';
+    ctx.fillRect(-6, 2, 12, 16);
+  } else if (type === 'chest' || type === 'icebox') {
+    ctx.fillStyle = type === 'icebox' ? '#80deea' : '#8d6e63';
+    ctx.fillRect(-16, -12, 32, 24);
+    ctx.strokeStyle = '#3e2723';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(-16, -12, 32, 24);
+  } else if (type === 'crockpot') {
+    ctx.fillStyle = '#424242';
+    ctx.beginPath(); ctx.arc(0, 0, 16, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ff7043';
+    ctx.beginPath(); ctx.arc(0, 0, 10, 0, Math.PI * 2); ctx.fill();
+  } else if (type === 'tent') {
+    ctx.fillStyle = '#4e342e';
+    ctx.beginPath(); ctx.moveTo(0, -22); ctx.lineTo(-24, 16); ctx.lineTo(24, 16); ctx.closePath(); ctx.fill();
+  } else {
+    ctx.fillStyle = '#4caf50';
+    ctx.fillRect(-14, -14, 28, 28);
+  }
 }
 
 // --- 7. Crock Pot Cooking Engine ---
@@ -3742,6 +3989,7 @@ function gameLoop(now) {
   lastTime = now;
 
   const isModalOpen = !document.getElementById('save-load-modal')?.classList.contains('hidden') ||
+                      !document.getElementById('menu-modal')?.classList.contains('hidden') ||
                       !document.getElementById('diary-modal')?.classList.contains('hidden') ||
                       !document.getElementById('map-modal')?.classList.contains('hidden') ||
                       !document.getElementById('crafting-drawer')?.classList.contains('hidden') ||
@@ -3954,18 +4202,25 @@ function update(dt) {
     insanityOverlay.classList.add('hidden');
   }
 
-  // 8. Hound Attack Waves
-  state.houndTimer -= dt;
-  if (state.houndTimer < 15 && !state.houndWarning) {
-    state.houndWarning = true;
-    document.getElementById('hound-warning').classList.remove('hidden');
-    audio.playHoundGrowl();
-  }
-  if (state.houndTimer <= 0) {
-    document.getElementById('hound-warning').classList.add('hidden');
-    state.houndWarning = false;
-    state.houndTimer = 480;
-    spawnHoundWave();
+  // 8. Hound Attack Waves (Difficulty scaled)
+  const minHoundDay = state.difficulty === 'easy' ? 15 : (state.difficulty === 'hard' ? 5 : 8);
+  if (state.day >= minHoundDay) {
+    state.houndTimer -= dt;
+    if (state.houndTimer < 20 && !state.houndWarning) {
+      state.houndWarning = true;
+      document.getElementById('hound-warning').classList.remove('hidden');
+      audio.playHoundGrowl();
+      showToast('⚠️ 远方荒野传来了令人不安的野狗狂吠声...');
+    }
+    if (state.houndTimer <= 0) {
+      document.getElementById('hound-warning').classList.add('hidden');
+      state.houndWarning = false;
+      const waveInterval = state.difficulty === 'easy' ? 900 : (state.difficulty === 'hard' ? 320 : 560);
+      state.houndTimer = waveInterval;
+      spawnHoundWave();
+    }
+  } else {
+    state.houndTimer = Math.max(state.houndTimer, 120);
   }
 
   // 9. Seasonal Bosses Spawning (Surface Only)
@@ -4446,18 +4701,27 @@ function updateCrockpots(dt) {
 
 function spawnHoundWave() {
   audio.playHoundGrowl();
-  showToast('嗷呜！恶犬群撕扯着迷雾冲了过来！');
-  const count = 3 + Math.floor(state.day / 6);
+  showToast('嗷呜——！荒野恶犬群循着气味扑杀过来了！');
+  let count = 2 + Math.floor(state.day / 8);
+  if (state.difficulty === 'easy') count = Math.max(2, Math.floor(count * 0.5));
+  else if (state.difficulty === 'hard') count = Math.floor(count * 1.4);
+
   for (let i = 0; i < count; i++) {
-    const angle = (i / count) * Math.PI * 2;
+    const angle = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.3;
+    const isFire = (state.season === 'summer' || (state.day > 12 && Math.random() < 0.25));
+    const isIce = (state.season === 'winter' && Math.random() < 0.35);
+    const houndType = isIce ? 'ice_hound' : (isFire ? 'fire_hound' : 'hound');
+
     state.entities.push({
-      type: 'hound',
-      x: state.player.x + Math.cos(angle) * 350,
-      y: state.player.y + Math.sin(angle) * 350,
+      type: houndType,
+      x: state.player.x + Math.cos(angle) * 360,
+      y: state.player.y + Math.sin(angle) * 360,
       hp: 60,
       maxHp: 60,
-      speed: 130,
-      radius: 16
+      speed: 125,
+      radius: 16,
+      isWave: true,
+      chasing: true
     });
   }
 }
@@ -4490,27 +4754,48 @@ function updateEntities(dt, isDark) {
       }
     }
 
-    // 2. Hounds (Normal, Ice, Fire)
+    // 2. Wild Hounds (Normal, Ice, Fire) - Realistic Aggro & Hunting Behavior
     if (ent.type === 'hound' || ent.type === 'ice_hound' || ent.type === 'fire_hound') {
+      ent.animTimer = (ent.animTimer || 0) + dt;
       const d = dist(ent.x, ent.y, p.x, p.y);
-      const angle = Math.atan2(p.y - ent.y, p.x - ent.x);
-      ent.x += Math.cos(angle) * ent.speed * dt;
-      ent.y += Math.sin(angle) * ent.speed * dt;
+      const aggroRange = state.difficulty === 'easy' ? 140 : (state.difficulty === 'hard' ? 280 : 200);
 
-      if (d < 28) {
-        ent.attackCooldown = (ent.attackCooldown || 0) - dt;
-        if (ent.attackCooldown <= 0) {
-          audio.playHit();
-          let dmg = 20;
-          if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
-            dmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+      // Chase player only if wave hound, within aggro range, or already actively chasing within 320px
+      if (ent.isWave || d < aggroRange || (ent.chasing && d < 320)) {
+        ent.chasing = true;
+        const angle = Math.atan2(p.y - ent.y, p.x - ent.x);
+        ent.x += Math.cos(angle) * ent.speed * dt;
+        ent.y += Math.sin(angle) * ent.speed * dt;
+        ent.facing = p.x < ent.x ? 'left' : 'right';
+
+        if (d < 28) {
+          ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+          if (ent.attackCooldown <= 0) {
+            audio.playHit();
+            let dmg = ent.type === 'fire_hound' ? 24 : 20;
+            if (state.difficulty === 'easy') dmg *= 0.5;
+            else if (state.difficulty === 'hard') dmg *= 1.4;
+            if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
+              dmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+            }
+            p.hp -= dmg;
+            if (ent.type === 'fire_hound') p.temp += 10;
+            if (ent.type === 'ice_hound') p.temp -= 10;
+            showToast(ent.type === 'fire_hound' ? '🔥 熔岩火狗撕咬了你！' : '🐺 野性猎犬撕咬了你！');
+            ent.attackCooldown = 1.2;
           }
-          p.hp -= dmg;
-          if (ent.type === 'fire_hound') p.temp += 10;
-          if (ent.type === 'ice_hound') p.temp -= 10;
-          showToast('猎犬撕咬了你！');
-          ent.attackCooldown = 1.1;
         }
+      } else {
+        // Lost player or peaceful patrol
+        ent.chasing = false;
+        ent.wanderTimer = (ent.wanderTimer || 0) - dt;
+        if (ent.wanderTimer <= 0) {
+          ent.wanderTimer = 3 + Math.random() * 4;
+          ent.wanderAngle = Math.random() * Math.PI * 2;
+        }
+        ent.x += Math.cos(ent.wanderAngle) * 35 * dt;
+        ent.y += Math.sin(ent.wanderAngle) * 35 * dt;
+        ent.facing = Math.cos(ent.wanderAngle) < 0 ? 'left' : 'right';
       }
     }
 
@@ -5330,18 +5615,22 @@ function updateEntities(dt, isDark) {
 
     // 29. Hound Mounds (Spawns hounds periodically)
     if (ent.type === 'hound_mound') {
-      ent.spawnTimer = (ent.spawnTimer || 25) - dt;
+      ent.spawnTimer = (ent.spawnTimer || 35) - dt;
       if (ent.spawnTimer <= 0) {
-        ent.spawnTimer = 35 + Math.random() * 20;
-        const nearbyHounds = state.entities.filter(e => e.type === 'hound' && dist(e.x, e.y, ent.x, ent.y) < 260).length;
-        if (nearbyHounds < 3) {
+        ent.spawnTimer = (state.difficulty === 'easy' ? 95 : (state.difficulty === 'hard' ? 45 : 70)) + Math.random() * 20;
+        const nearbyHounds = state.entities.filter(e => (e.type === 'hound' || e.type === 'fire_hound') && dist(e.x, e.y, ent.x, ent.y) < 250).length;
+        const maxHounds = state.difficulty === 'hard' ? 3 : 2;
+        if (nearbyHounds < maxHounds) {
           state.entities.push({
-            type: Math.random() < 0.3 ? 'fire_hound' : 'hound',
+            type: Math.random() < 0.25 ? 'fire_hound' : 'hound',
             x: ent.x + (Math.random() - 0.5) * 40,
             y: ent.y + (Math.random() - 0.5) * 40,
             hp: 60, maxHp: 60,
-            speed: 130,
-            radius: 16
+            speed: 110,
+            radius: 16,
+            isWave: false,
+            originX: ent.x,
+            originY: ent.y
           });
         }
       }
@@ -6805,13 +7094,177 @@ function drawEntity(ent) {
       }
     }
   } else if (ent.type === 'hound' || ent.type === 'ice_hound' || ent.type === 'fire_hound') {
-    ctx.fillStyle = ent.type === 'ice_hound' ? '#00bcd4' : (ent.type === 'fire_hound' ? '#e65100' : '#212121');
+    // Authentic Gothic Wild Hound / Fire Hound / Ice Hound
+    const flip = ent.facing === 'left' ? -1 : 1;
+    ctx.scale(flip, 1);
+    const anim = Math.sin((ent.animTimer || 0) * 12);
+    const isMoving = ent.chasing || (ent.speed && ent.speed > 30);
+
+    // 1. Soft Shadow
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.35)';
     ctx.beginPath();
-    ctx.ellipse(0, 0, 16, 11, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, 14, 18, 6, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = '#f44336';
-    ctx.fillRect(-5, -6, 2, 2);
-    ctx.fillRect(3, -6, 2, 2);
+
+    // 2. Variants Palette
+    let bodyColor = '#1e1b18';
+    let spineColor = '#0a0908';
+    let underColor = '#3a322b';
+    let eyeColor = '#ff1744';
+    if (ent.type === 'fire_hound') {
+      bodyColor = '#d35400';
+      spineColor = '#962d00';
+      underColor = '#f39c12';
+      eyeColor = '#ffff00';
+    } else if (ent.type === 'ice_hound') {
+      bodyColor = '#00acc1';
+      spineColor = '#006064';
+      underColor = '#80deea';
+      eyeColor = '#e0f7fa';
+    }
+
+    // 3. Quadruped Legs & Paws
+    ctx.fillStyle = spineColor;
+    // Hind legs
+    ctx.beginPath();
+    ctx.moveTo(-10, 2);
+    ctx.lineTo(-14 + (isMoving ? anim * 6 : 0), 14);
+    ctx.lineTo(-10 + (isMoving ? anim * 6 : 0), 14);
+    ctx.lineTo(-6, 4);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(-6, 2);
+    ctx.lineTo(-4 - (isMoving ? anim * 6 : 0), 14);
+    ctx.lineTo(0 - (isMoving ? anim * 6 : 0), 14);
+    ctx.lineTo(-2, 4);
+    ctx.fill();
+
+    // Forelegs
+    ctx.beginPath();
+    ctx.moveTo(8, 2);
+    ctx.lineTo(12 - (isMoving ? anim * 6 : 0), 14);
+    ctx.lineTo(16 - (isMoving ? anim * 6 : 0), 14);
+    ctx.lineTo(12, 4);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(4, 2);
+    ctx.lineTo(6 + (isMoving ? anim * 6 : 0), 14);
+    ctx.lineTo(10 + (isMoving ? anim * 6 : 0), 14);
+    ctx.lineTo(8, 4);
+    ctx.fill();
+
+    // 4. Canine Torso & Underbelly
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath();
+    ctx.moveTo(-14, 2);
+    ctx.quadraticCurveTo(-6, -10, 8, -4);
+    ctx.quadraticCurveTo(14, 4, 10, 8);
+    ctx.quadraticCurveTo(0, 10, -12, 6);
+    ctx.closePath();
+    ctx.fill();
+
+    // Underbelly
+    ctx.fillStyle = underColor;
+    ctx.beginPath();
+    ctx.moveTo(-10, 4);
+    ctx.quadraticCurveTo(0, 8, 8, 5);
+    ctx.lineTo(6, 7);
+    ctx.quadraticCurveTo(-2, 9, -10, 6);
+    ctx.closePath();
+    ctx.fill();
+
+    // 5. Spiky Spine Quills
+    ctx.fillStyle = spineColor;
+    for (let i = 0; i < 4; i++) {
+      const qx = -12 + i * 5;
+      const qy = -4 - Math.sin((i / 3) * Math.PI) * 4;
+      ctx.beginPath();
+      ctx.moveTo(qx - 2, qy + 2);
+      ctx.lineTo(qx - 1, qy - 7 - (ent.type === 'ice_hound' ? 3 : 0));
+      ctx.lineTo(qx + 3, qy + 1);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    // 6. Spiky Wolf Tail
+    ctx.fillStyle = spineColor;
+    ctx.beginPath();
+    const tailWag = Math.sin((ent.animTimer || 0) * 14) * 4;
+    ctx.moveTo(-14, 0);
+    ctx.lineTo(-24, -8 + tailWag);
+    ctx.lineTo(-20, -2 + tailWag);
+    ctx.lineTo(-12, 4);
+    ctx.closePath();
+    ctx.fill();
+
+    // 7. Vicious Predatory Head & Snout
+    ctx.fillStyle = bodyColor;
+    ctx.beginPath();
+    ctx.moveTo(6, -6);
+    ctx.lineTo(20, -2);
+    ctx.lineTo(22, 1);
+    ctx.lineTo(14, 3);
+    ctx.lineTo(10, 7);
+    ctx.closePath();
+    ctx.fill();
+
+    // Lower Jaw
+    ctx.beginPath();
+    ctx.moveTo(12, 5);
+    ctx.lineTo(18, 5);
+    ctx.lineTo(16, 8);
+    ctx.lineTo(9, 7);
+    ctx.closePath();
+    ctx.fill();
+
+    // Mouth Interior & Sharp Fangs
+    ctx.fillStyle = '#7f1d1d';
+    ctx.fillRect(13, 2, 5, 3);
+    ctx.fillStyle = '#ffffff';
+    ctx.beginPath();
+    ctx.moveTo(14, 2); ctx.lineTo(15, 5); ctx.lineTo(16, 2);
+    ctx.moveTo(18, 2); ctx.lineTo(19, 5); ctx.lineTo(20, 2);
+    ctx.moveTo(15, 6); ctx.lineTo(16, 4); ctx.lineTo(17, 6);
+    ctx.fill();
+
+    // 8. Pointed Wolf Ears
+    ctx.fillStyle = spineColor;
+    ctx.beginPath();
+    ctx.moveTo(6, -7);
+    ctx.lineTo(8, -18);
+    ctx.lineTo(12, -8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = underColor;
+    ctx.beginPath();
+    ctx.moveTo(8, -8);
+    ctx.lineTo(9, -15);
+    ctx.lineTo(11, -8);
+    ctx.closePath();
+    ctx.fill();
+
+    // 9. Glowing Eyes
+    ctx.fillStyle = eyeColor;
+    ctx.beginPath();
+    ctx.arc(12, -4, 2.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#000000';
+    ctx.fillRect(12, -5, 1, 2.5);
+
+    // 10. Elemental Particles
+    if (ent.type === 'fire_hound') {
+      ctx.fillStyle = Math.random() < 0.5 ? '#ff9800' : '#ffeb3b';
+      ctx.beginPath();
+      ctx.arc(-8 + Math.random() * 16, -10 - Math.random() * 8, 2 + Math.random() * 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (ent.type === 'ice_hound') {
+      ctx.fillStyle = 'rgba(224, 247, 250, 0.7)';
+      ctx.beginPath();
+      ctx.arc(-6 + Math.random() * 14, -8 - Math.random() * 6, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
   } else if (ent.type === 'deerclops') {
     // Winter Boss Deerclops
     ctx.fillStyle = '#1a237e';
@@ -7610,6 +8063,11 @@ function renderLighting() {
       }
     }
   }
+  // 12. Blueprint Placement Ghost
+  if (state.blueprint && state.blueprint.active) {
+    renderBlueprintGhost(ctx);
+  }
+
   ctx.restore();
 }
 
@@ -7843,6 +8301,52 @@ function updateSaveSlotCards() {
       descEl.innerText = '空存档';
     }
   }
+}
+
+
+function openMenuUI() {
+  window.lastModalOpenTime = Date.now();
+  const modal = document.getElementById('menu-modal');
+  modal.classList.remove('hidden');
+
+  ['easy', 'normal', 'hard'].forEach(d => {
+    const b = document.getElementById(`diff-${d}`);
+    if (b) {
+      if (state.difficulty === d) b.classList.add('active');
+      else b.classList.remove('active');
+    }
+  });
+
+  document.getElementById('btn-close-menu').onclick = () => {
+    modal.classList.add('hidden');
+  };
+  document.getElementById('btn-menu-resume').onclick = () => {
+    modal.classList.add('hidden');
+  };
+  document.getElementById('btn-menu-save').onclick = () => {
+    modal.classList.add('hidden');
+    openSaveLoadUI();
+  };
+  document.getElementById('btn-menu-restart').onclick = () => {
+    if (confirm('确认返回角色选择并放弃未保存的探索吗？')) {
+      location.reload();
+    }
+  };
+
+  ['easy', 'normal', 'hard'].forEach(diff => {
+    const btn = document.getElementById(`diff-${diff}`);
+    if (btn) {
+      btn.onclick = () => {
+        state.difficulty = diff;
+        ['easy', 'normal', 'hard'].forEach(d => {
+          document.getElementById(`diff-${d}`)?.classList.toggle('active', d === diff);
+        });
+        const diffNames = { easy: '🟢 悠闲探索 (Relaxed)', normal: '🟡 经典求生 (Classic)', hard: '🔴 严酷荒野 (Hardcore)' };
+        showToast(`生存难度已切换为：${diffNames[diff]}`);
+        audio.playCraft();
+      };
+    }
+  });
 }
 
 function openSaveLoadUI() {
@@ -8130,6 +8634,122 @@ function setupInputs() {
     }
   });
 
+  // Menu & 3-Tier Difficulty Settings
+  const btnMenu = document.getElementById('btn-menu');
+  if (btnMenu) {
+    btnMenu.onclick = (e) => {
+      if (e) e.preventDefault();
+      audio.init();
+      openMenuUI();
+    };
+  }
+
+  // Equipment Slots Click to inspect / unequip
+  ['hand', 'head', 'body', 'amulet'].forEach(slotKey => {
+    const el = document.getElementById(`equip-${slotKey}`);
+    if (el) {
+      el.onclick = () => {
+        const eq = state.player.equipped[slotKey];
+        if (eq) {
+          onSlotClicked('equip', slotKey);
+        } else {
+          const names = { hand: '手持武器/工具', head: '头部帽子/头盔', body: '身体护甲/背包', amulet: '饰品/护符' };
+          showToast(`当前【${names[slotKey]}】为空，轻触背包中相应物品可直接穿戴！`);
+        }
+      };
+    }
+  });
+
+  // Blueprint Dragging on Canvas
+  const canvas = document.getElementById('game-canvas');
+  const handleBlueprintMove = (clientX, clientY) => {
+    if (!state.blueprint || !state.blueprint.active) return;
+    const rect = canvas.getBoundingClientRect();
+    const sx = clientX - rect.left;
+    const sy = clientY - rect.top;
+
+    const wx = sx + state.camera.x;
+    const wy = sy + state.camera.y;
+
+    const p = state.player;
+    const d = dist(wx, wy, p.x, p.y);
+    if (d <= 240) {
+      state.blueprint.x = wx;
+      state.blueprint.y = wy;
+    } else {
+      const angle = Math.atan2(wy - p.y, wx - p.x);
+      state.blueprint.x = p.x + Math.cos(angle) * 240;
+      state.blueprint.y = p.y + Math.sin(angle) * 240;
+    }
+    state.blueprint.valid = checkBlueprintValidity(state.blueprint.x, state.blueprint.y, state.blueprint.structureType);
+  };
+
+  canvas.addEventListener('pointermove', (e) => {
+    if (state.blueprint && state.blueprint.active) {
+      handleBlueprintMove(e.clientX, e.clientY);
+    }
+  });
+
+  canvas.addEventListener('touchmove', (e) => {
+    if (state.blueprint && state.blueprint.active && e.touches.length > 0) {
+      handleBlueprintMove(e.touches[0].clientX, e.touches[0].clientY);
+    }
+  }, { passive: true });
+
+  // Blueprint Controls
+  const btnBpRotate = document.getElementById('btn-bp-rotate');
+  if (btnBpRotate) {
+    btnBpRotate.onclick = () => {
+      if (state.blueprint) {
+        state.blueprint.rotation = (state.blueprint.rotation + 90) % 360;
+        document.getElementById('bp-rot-deg').innerText = state.blueprint.rotation + '°';
+        audio.playChester();
+      }
+    };
+  }
+
+  const btnBpConfirm = document.getElementById('btn-bp-confirm');
+  if (btnBpConfirm) {
+    btnBpConfirm.onclick = () => {
+      if (!state.blueprint) return;
+      if (!state.blueprint.valid) {
+        showToast('⚠️ 该位置地面受阻或过于拥挤，无法建造！');
+        return;
+      }
+      const bp = state.blueprint;
+      deployStructure(bp.structureType, bp.x, bp.y, bp.rotation);
+      if (bp.source === 'inventory' && bp.sourceSlot) {
+        const slots = getSlotArray(bp.sourceSlot.source);
+        if (slots && slots[bp.sourceSlot.index]) {
+          slots[bp.sourceSlot.index].count--;
+          if (slots[bp.sourceSlot.index].count <= 0) slots[bp.sourceSlot.index] = null;
+        }
+      }
+      state.blueprint = null;
+      document.getElementById('blueprint-hud').classList.add('hidden');
+      updateInventoryUI();
+    };
+  }
+
+  const btnBpCancel = document.getElementById('btn-bp-cancel');
+  if (btnBpCancel) {
+    btnBpCancel.onclick = () => {
+      if (state.blueprint) {
+        if (state.blueprint.source === 'craft' && state.blueprint.recipe) {
+          for (const [matId, amt] of Object.entries(state.blueprint.recipe.req)) {
+            addToPlayer(matId, amt);
+          }
+          showToast('已取消放置，已全额返还制作材料！');
+        } else {
+          showToast('已取消放置蓝图');
+        }
+        state.blueprint = null;
+        document.getElementById('blueprint-hud').classList.add('hidden');
+        updateInventoryUI();
+      }
+    };
+  }
+
   document.getElementById('btn-save-game').onclick = () => {
     audio.init();
     openSaveLoadUI();
@@ -8303,12 +8923,14 @@ function setupInputs() {
     };
   }
 
-  // Modal backdrop click to dismiss
-  ['map-modal', 'diary-modal', 'save-load-modal', 'teleportato-modal', 'chest-modal', 'chester-modal', 'crockpot-modal'].forEach(id => {
+  // Modal backdrop click to dismiss with 350ms touch debounce guard
+  ['map-modal', 'diary-modal', 'save-load-modal', 'menu-modal', 'teleportato-modal', 'chest-modal', 'chester-modal', 'crockpot-modal'].forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       el.addEventListener('click', (e) => {
-        if (e.target === el) el.classList.add('hidden');
+        if (e.target === el && Date.now() - (window.lastModalOpenTime || 0) > 350) {
+          el.classList.add('hidden');
+        }
       });
     }
   });

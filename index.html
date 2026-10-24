@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>饥荒：永恒之境 (Don't Starve Complete)</title>
   <link rel="manifest" href="manifest.json">
-  <link rel="stylesheet" href="style.css?v=4.0">
+  <link rel="stylesheet" href="style.css?v=4.1">
 </head>
 <body>
   <div id="game-container">
@@ -18,7 +18,7 @@
     <div id="hud-top">
       <div class="top-left-group">
         <div class="hud-btn-row">
-          <a href="../index.html" id="btn-back-home" class="gothic-btn mini-btn" title="返回游戏菜单">🏠 菜单</a>
+          <button id="btn-menu" class="gothic-btn mini-btn" title="系统设置与生存难度菜单">🏠 菜单</button>
           <button id="btn-toggle-map" class="gothic-btn mini-btn" title="查看大地图">🗺️ 地图</button>
           <button id="btn-fullscreen" class="gothic-btn mini-btn" title="切换全屏沉浸防误触">📱 全屏</button>
         </div>
@@ -130,10 +130,15 @@
         <div class="slot-item-icon" id="icon-equip-head">空</div>
         <div class="durability-bar" id="dur-head"></div>
       </div>
-      <div class="equip-slot" id="equip-body" title="身体胸甲/背包">
+      <div class="equip-slot" id="equip-body" title="身体胸甲/背包 (点击卸下或查看)">
         <span class="slot-label">身体</span>
         <div class="slot-item-icon" id="icon-equip-body">空</div>
         <div class="durability-bar" id="dur-body"></div>
+      </div>
+      <div class="equip-slot" id="equip-amulet" title="装饰/护符 (点击卸下或查看)">
+        <span class="slot-label">饰品</span>
+        <div class="slot-item-icon" id="icon-equip-amulet">空</div>
+        <div class="durability-bar" id="dur-amulet"></div>
       </div>
     </div>
 
@@ -197,8 +202,13 @@
           <h2>📦 营地储物箱 (9格)</h2>
           <button id="btn-close-chest" class="close-x">✕</button>
         </div>
+        <p class="chest-tip">点选箱中物品取回背包；点选下方背包物品存入木箱。</p>
         <div id="chest-grid" class="chest-grid">
           <!-- 9 slots injected dynamically -->
+        </div>
+        <div class="container-sub-header">🎒 玩家随身背包 (轻点物品手动存入木箱)</div>
+        <div id="chest-player-grid" class="chest-grid player-grid">
+          <!-- Player inventory slots injected dynamically -->
         </div>
       </div>
     </div>
@@ -207,12 +217,61 @@
     <div id="chester-modal" class="hidden">
       <div class="gothic-panel chester-box">
         <div class="modal-header">
-          <h2>🐾 切斯特·移动储物箱 (9格)</h2>
+          <h2>🐾 切斯特·移动储物箱</h2>
           <button id="btn-close-chester" class="close-x">✕</button>
         </div>
         <p class="chester-status-tip" id="chester-type-tip">忠诚的眼骨伙伴，随身跟随并吞吐珍稀宝物。</p>
         <div id="chester-grid" class="chest-grid">
-          <!-- 9 slots injected dynamically -->
+          <!-- 9 or 12 slots injected dynamically -->
+        </div>
+        <div class="container-sub-header">🎒 玩家随身背包 (轻点物品手动存入切斯特)</div>
+        <div id="chester-player-grid" class="chest-grid player-grid">
+          <!-- Player inventory slots injected dynamically -->
+        </div>
+      </div>
+    </div>
+
+    <!-- System Menu & Settings Modal -->
+    <div id="menu-modal" class="hidden">
+      <div class="gothic-panel menu-box">
+        <div class="modal-header">
+          <h2>⚙️ 系统设置与生存难度</h2>
+          <button id="btn-close-menu" class="close-x">✕</button>
+        </div>
+
+        <!-- 3-Tier Difficulty Selector -->
+        <div class="menu-section">
+          <label class="menu-label">🏕️ 生存难度调节 (即时生效)：</label>
+          <div class="difficulty-options">
+            <button class="diff-btn" data-diff="easy" id="diff-easy">
+              <div class="diff-title">🟢 悠闲探索 (Relaxed)</div>
+              <div class="diff-desc">饥饿/理智衰减减缓50%，受到伤害减半，野狗袭击推迟至15天后且数量减半，野兽警戒范围缩小40%</div>
+            </button>
+            <button class="diff-btn active" data-diff="normal" id="diff-normal">
+              <div class="diff-title">🟡 经典求生 (Classic - 原版)</div>
+              <div class="diff-desc">标准原版饥荒体验，第8-10天首次野狗波次，标准饥饿衰减与环境温差</div>
+            </button>
+            <button class="diff-btn" data-diff="hard" id="diff-hard">
+              <div class="diff-title">🔴 严酷荒野 (Hardcore)</div>
+              <div class="diff-desc">饥饿/理智流失加速30%，怪物攻击+50%，恶犬波次凶猛频繁(每4-5天)，极寒酷暑更致命</div>
+            </button>
+          </div>
+        </div>
+
+        <!-- Sound & Control Toggles -->
+        <div class="menu-section">
+          <label class="menu-label">🔊 音效与振动反馈：</label>
+          <div class="menu-toggle-row">
+            <label class="toggle-item"><input type="checkbox" id="toggle-sfx" checked> 开启环境与战斗音效</label>
+            <label class="toggle-item"><input type="checkbox" id="toggle-vibrate" checked> 开启触屏操作振动</label>
+          </div>
+        </div>
+
+        <!-- System Actions -->
+        <div class="menu-actions">
+          <button id="btn-menu-save" class="gothic-btn">💾 存档 / 读档管理</button>
+          <button id="btn-menu-restart" class="gothic-btn danger-btn">🔄 返回角色选择</button>
+          <button id="btn-menu-resume" class="gothic-btn highlight">▶️ 继续求生</button>
         </div>
       </div>
     </div>
@@ -429,8 +488,20 @@
         </div>
       </div>
     </div>
+    <!-- Blueprint Placement Mode HUD -->
+    <div id="blueprint-hud" class="hidden">
+      <div class="blueprint-banner">
+        <span id="bp-name-text">📐 建筑蓝图放置模式</span>
+        <span class="bp-hint">轻触地面拖动微调位置，旋转调整朝向</span>
+      </div>
+      <div class="blueprint-controls">
+        <button id="btn-bp-rotate" class="gothic-btn bp-btn">🔄 旋转 90° (<span id="bp-rot-deg">0°</span>)</button>
+        <button id="btn-bp-cancel" class="gothic-btn bp-btn cancel-btn">✖ 取消</button>
+        <button id="btn-bp-confirm" class="gothic-btn bp-btn confirm-btn">✔ 确认建造</button>
+      </div>
+    </div>
   </div>
 
-  <script src="game.js?v=4.0"></script>
+  <script src="game.js?v=4.1"></script>
 </body>
 </html>

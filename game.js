@@ -685,14 +685,57 @@ function initDiary() {
   };
 }
 
+// --- 3.5. Authentic Don't Starve Seasonal Day/Night Engine ---
+function getTimePhaseSplit(season = (state ? state.season : 'autumn')) {
+  // In Don't Starve, each day has 16 clock segments:
+  // Autumn: Day 8 (50%), Dusk 4 (25%), Night 4 (25%) -> Balanced golden autumn
+  // Winter: Day 4 (25%), Dusk 4 (25%), Night 8 (50%) -> Brutally long freezing nights (80s!), brief day (40s)
+  // Spring: Day 6 (37.5%), Dusk 6 (37.5%), Night 4 (25%) -> Rainy extended dusk
+  // Summer: Day 10 (62.5%), Dusk 3 (18.75%), Night 3 (18.75%) -> Scorching long days (100s), short nights (30s)
+  let daySegs = 8, duskSegs = 4, nightSegs = 4;
+  if (season === 'winter') {
+    daySegs = 4; duskSegs = 4; nightSegs = 8;
+  } else if (season === 'spring') {
+    daySegs = 6; duskSegs = 6; nightSegs = 4;
+  } else if (season === 'summer') {
+    daySegs = 10; duskSegs = 3; nightSegs = 3;
+  }
+
+  const segDuration = 10; // 10s per segment -> 160s full day
+  const totalSec = 16 * segDuration; // 160s
+  const daySec = daySegs * segDuration;
+  const duskSec = duskSegs * segDuration;
+  const nightSec = nightSegs * segDuration;
+  const dayEnd = daySec;
+  const duskEnd = daySec + duskSec;
+
+  return {
+    daySegs, duskSegs, nightSegs,
+    totalSec,
+    daySec, duskSec, nightSec,
+    dayEnd, duskEnd
+  };
+}
+
+function getDayPhases() {
+  const currentSeason = (state && state.season) ? state.season : 'autumn';
+  const split = getTimePhaseSplit(currentSeason);
+  if (state) state.dayLength = split.totalSec;
+  const t = (state && state.timeInDay !== undefined) ? (state.timeInDay % split.totalSec) : 0;
+  const isDay = t < split.dayEnd;
+  const isDusk = t >= split.dayEnd && t < split.duskEnd;
+  const isNight = t >= split.duskEnd;
+  return { isDay, isDusk, isNight, split };
+}
+
 const state = {
   started: false,
   gameOver: false,
   character: 'wilson',
   worldCycle: 1,
   day: 1,
-  timeInDay: 0, // 0-60 Day, 60-85 Dusk, 85-120 Night (120s full day)
-  dayLength: 120,
+  timeInDay: 0,
+  dayLength: 160,
 
   // World Layer: 'surface' or 'caves'
   worldLayer: 'surface',
@@ -3761,7 +3804,8 @@ function interactNearest() {
       }
     }
   } else if (nearest.type === 'tent') {
-    if (state.timeInDay >= 60) {
+    const { isDusk, isNight } = getDayPhases();
+    if (isDusk || isNight) {
       p.hp = Math.min(p.maxHp, p.hp + 50);
       p.sanity = Math.min(p.maxSanity, p.sanity + 60);
       p.hunger = Math.max(0, p.hunger - 40);
@@ -4160,26 +4204,70 @@ function attackNearest() {
     nearest.hp -= dmg;
     createHitParticles(nearest.x, nearest.y, '#e74c3c');
 
-    // Retaliation & Aggro hooks
-    if (nearest.type === 'beefalo') {
+    // Retaliation & Aggro hooks for all Neutral/Passive Mobs
+    if (nearest.type === 'bee' || nearest.type === 'killer_bee') {
+      nearest.target = p;
+      nearest.aggroTimer = 30;
+      audio.playHit();
       for (const b of state.entities) {
-        if (b.type === 'beefalo' && dist(b.x, b.y, nearest.x, nearest.y) < 360) {
-          b.alertHerdTimer = 15;
-          b.target = state.player;
+        if ((b.type === 'bee' || b.type === 'killer_bee') && dist(b.x, b.y, nearest.x, nearest.y) < 320) {
+          b.target = p;
+          b.aggroTimer = 30;
+          createHitParticles(b.x, b.y, '#ffd54f');
         }
       }
-      showToast('🐂 皮弗娄牛群愤怒长啸！激发牛群群体复仇！');
+      showToast('🐝 蜜蜂受创狂怒示警！半径320px蜂群全员出动，发起群体毒刺复仇！');
+    } else if (nearest.type === 'pig') {
+      nearest.isFollower = false;
+      nearest.target = p;
+      nearest.aggroTimer = 25;
+      audio.playHit();
+      for (const pg of state.entities) {
+        if (pg.type === 'pig' && !pg.isWerepig && dist(pg.x, pg.y, nearest.x, nearest.y) < 280) {
+          pg.target = p;
+          pg.aggroTimer = 25;
+          pg.isFollower = false;
+          createHitParticles(pg.x, pg.y, '#f48fb1');
+        }
+      }
+      showToast('🐷 猪人遭受攻击愤怒哼叫！激起整个猪人族群武装群殴反击！');
+    } else if (nearest.type === 'beefalo') {
+      nearest.obedience = Math.max(0, (nearest.obedience || 0) - 30);
+      nearest.domestication = Math.max(0, (nearest.domestication || 0) - 15);
+      for (const b of state.entities) {
+        if (b.type === 'beefalo' && dist(b.x, b.y, nearest.x, nearest.y) < 360) {
+          b.alertHerdTimer = 20;
+          b.target = p;
+        }
+      }
+      showToast('🐂 皮弗娄牛群愤怒长啸！激发牛群群体践踏复仇！');
+    } else if (nearest.type === 'frog') {
+      nearest.aggro = true;
+      nearest.target = p;
+      for (const f of state.entities) {
+        if (f.type === 'frog' && dist(f.x, f.y, nearest.x, nearest.y) < 220) {
+          f.aggro = true;
+          f.target = p;
+        }
+      }
+      showToast('🐸 青蛙愤怒鼓腮！蛙群蜂拥弹跳反击！');
+    } else if (nearest.type === 'catcoon') {
+      nearest.target = p;
+      nearest.aggroTimer = 20;
+      nearest.isFriend = false;
+      showToast('🐱 浣熊猫受惊弓背哈气！伸出锋利爪刃猛烈反击！');
+    } else if (nearest.type === 'koalefant') {
+      nearest.target = p;
+      nearest.aggroTimer = 30;
+      showToast('🐘 考拉象发出暴怒长鸣！停止奔逃回身用巨鼻横扫猛击！');
+    } else if (nearest.type === 'tallbird') {
+      nearest.angryEggStolen = true;
+      nearest.target = p;
+      showToast('🦤 高脚鸟尖锐嘶鸣，锁定目标疯狂啄击！');
     } else if (nearest.type === 'tentacle') {
       nearest.submerged = false;
       nearest.idleTimer = 0;
-    } else if (nearest.type === 'tallbird') {
-      nearest.angryEggStolen = true;
-    } else if (nearest.type === 'frog') {
-      for (const f of state.entities) {
-        if (f.type === 'frog' && dist(f.x, f.y, nearest.x, nearest.y) < 180) {
-          f.aggro = true;
-        }
-      }
+      nearest.target = p;
     }
 
     // Shadow Horrors teleport on hit!
@@ -4426,11 +4514,10 @@ function gameLoop(now) {
 function update(dt) {
   const p = state.player;
 
-  // 1. Day/Night & Clock Progression
-  state.timeInDay = (state.timeInDay + dt) % state.dayLength;
-  const isDay = state.timeInDay < 60;
-  const isDusk = state.timeInDay >= 60 && state.timeInDay < 85;
-  const isNight = state.timeInDay >= 85;
+  // 1. Day/Night & Clock Progression (Dynamic Seasonal Cycles)
+  const { isDay, isDusk, isNight, split } = getDayPhases();
+  state.timeInDay = (state.timeInDay + dt) % split.totalSec;
+  state.dayLength = split.totalSec;
 
   if (state.timeInDay < dt) {
     state.day++;
@@ -4468,7 +4555,6 @@ function update(dt) {
       state.lightningTimer = Math.random() * 25 + 20;
       audio.playThunder();
       state.screenFlash = 0.22;
-      if (navigator.vibrate) navigator.vibrate(200);
 
       const nearbyTrees = state.entities.filter(e => e.type === 'tree' && dist(e.x, e.y, p.x, p.y) < 360);
       if (nearbyTrees.length > 0) {
@@ -4586,15 +4672,17 @@ function update(dt) {
     p.sanity = Math.max(0, p.sanity - dt * (p.wetness / 60));
   }
 
-  // 5. Light check around player
+  // 5. Comprehensive Light check around player
   const isFullMoon = (state.day % 16 === 9 || state.day % 16 === 10) && isNight && state.worldLayer === 'surface';
   let inLight = (isDay || isFullMoon) && state.worldLayer === 'surface';
   if (isFullMoon && !state.fullMoonToastShown) {
     state.fullMoonToastShown = true;
     showToast('🌕 满月升起！皎洁蓝月驱散了查理的阴影，但野性正在苏醒！');
-  } else if (!isFullMoon && state.timeInDay < 85) {
+  } else if (!isFullMoon && !isNight) {
     state.fullMoonToastShown = false;
   }
+
+  // Check player hand torch / lantern
   if (p.equipped.hand && ITEMS[p.equipped.hand.id]?.isLight) {
     inLight = true;
     p.equipped.hand.durability -= dt * 1.0;
@@ -4605,21 +4693,39 @@ function update(dt) {
     }
   }
 
-  // Campfire proximity or Cave Light Flower proximity
+  // Check Magiluminescence amulet
+  const playerAmulet = (p.equipped.amulet && ITEMS[p.equipped.amulet.id]) ? p.equipped.amulet :
+                       ((p.equipped.body && ITEMS[p.equipped.body.id]?.equipSlot === 'amulet') ? p.equipped.body : null);
+  if (playerAmulet && playerAmulet.id === 'magiluminescence') {
+    inLight = true;
+  }
+
+  // World light sources (Campfire, Scaled Furnace, Dwarf Star, Cave Light Flower, Burning Entity)
   for (const ent of state.entities) {
+    const dEnt = dist(p.x, p.y, ent.x, ent.y);
     if ((ent.type === 'campfire' || ent.type === 'firepit') && ent.fuel > 0) {
       ent.fuel -= dt;
-      if (dist(p.x, p.y, ent.x, ent.y) < 220) {
+      if (dEnt < 220) {
         inLight = true;
         if (isNight) p.sanity = Math.min(p.maxSanity, p.sanity + dt * 0.6);
         warmThermalStones(dt);
       }
-    } else if (ent.type === 'light_flower' && ent.harvestable && dist(p.x, p.y, ent.x, ent.y) < 120) {
+    } else if (ent.type === 'scaled_furnace' && dEnt < 220) {
+      inLight = true;
+      if (p.temp < 32) p.temp += dt * 2.5;
+      p.sanity = Math.min(p.maxSanity, p.sanity + dt * 0.4);
+    } else if (ent.type === 'dwarf_star' && dEnt < 240) {
+      inLight = true;
+      p.sanity = Math.min(p.maxSanity, p.sanity + dt * 0.8);
+      if (p.temp < 30) p.temp += dt * 2.0;
+    } else if (ent.type === 'light_flower' && ent.harvestable && dEnt < 120) {
+      inLight = true;
+    } else if (ent.burning && ent.burning > 0 && dEnt < 140) {
       inLight = true;
     }
   }
 
-  // 6. Charlie Night Terror
+  // 6. Charlie Night Terror (ZERO vibration, silent screen edge flash)
   const charlieVig = document.getElementById('charlie-vignette');
   if ((isNight || state.worldLayer === 'caves') && !inLight) {
     p.inDarknessTimer += dt;
@@ -4628,11 +4734,11 @@ function update(dt) {
       audio.playHoundGrowl();
       p.whisperTimer = 0;
     }
-    charlieVig.classList.remove('hidden');
+    if (charlieVig) charlieVig.classList.remove('hidden');
 
     if (p.inDarknessTimer > 3.5) {
       audio.playCharlieAttack();
-      if (navigator.vibrate) navigator.vibrate(260);
+      // NO navigator.vibrate! Hardware remains totally silent!
 
       let dmg = 35;
       if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
@@ -4650,7 +4756,7 @@ function update(dt) {
     }
   } else {
     p.inDarknessTimer = 0;
-    charlieVig.classList.add('hidden');
+    if (charlieVig) charlieVig.classList.add('hidden');
   }
 
   // 7. Sanity Insanity & Materialized Shadow Horrors
@@ -6123,6 +6229,28 @@ function updateEntities(dt, isDark) {
             ent.y += Math.sin(ent.wanderAngle) * 35 * dt;
           }
         }
+      } else if (ent.target === p && ent.aggroTimer > 0) {
+        // Neutral Pig Retaliation against aggressive player
+        ent.aggroTimer -= dt;
+        const pd = dist(ent.x, ent.y, p.x, p.y);
+        const pa = Math.atan2(p.y - ent.y, p.x - ent.x);
+        if (pd > 32) {
+          ent.x += Math.cos(pa) * 115 * dt;
+          ent.y += Math.sin(pa) * 115 * dt;
+        } else {
+          ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+          if (ent.attackCooldown <= 0) {
+            audio.playHit();
+            let pigDmg = 33;
+            if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
+              pigDmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+            }
+            p.hp -= pigDmg;
+            createHitParticles(p.x, p.y, '#f48fb1');
+            showToast('受到愤怒猪人铁拳重击反制！(-33生命)');
+            ent.attackCooldown = 1.5;
+          }
+        }
       } else if (ent.isFollower) {
         ent.followTimer -= dt;
         if (ent.followTimer <= 0) ent.isFollower = false;
@@ -6467,23 +6595,34 @@ function updateEntities(dt, isDark) {
       }
     }
 
-    // 20. Bees & Killer Bees
+    // 20. Bees & Killer Bees (with active Swarm Counterattack!)
     if (ent.type === 'bee' || ent.type === 'killer_bee') {
       ent.flapTick = (ent.flapTick || 0) + dt * 15;
       const isKiller = ent.type === 'killer_bee';
+      if (ent.aggroTimer > 0) {
+        ent.aggroTimer -= dt;
+      } else if (!isKiller && ent.target === p) {
+        ent.target = null;
+      }
+
       const target = isKiller ? p : ent.target;
       const td = target ? dist(ent.x, ent.y, target.x, target.y) : 999;
 
-      if (target && td < (isKiller ? 150 : 200)) {
+      if (target && td < 320) {
         const angle = Math.atan2(target.y - ent.y, target.x - ent.x);
-        ent.x += Math.cos(angle) * (isKiller ? 110 : 85) * dt;
-        ent.y += Math.sin(angle) * (isKiller ? 110 : 85) * dt;
-        if (td < 24) {
+        ent.x += Math.cos(angle) * (isKiller ? 120 : 95) * dt;
+        ent.y += Math.sin(angle) * (isKiller ? 120 : 95) * dt;
+        if (td < 28) {
           ent.attackCooldown = (ent.attackCooldown || 0) - dt;
           if (ent.attackCooldown <= 0) {
             audio.playHit();
-            p.hp -= isKiller ? 10 : 8;
-            showToast(isKiller ? '🐝 杀人蜂剧毒毒刺蜇伤了你！(-10 HP)' : '🐝 被工蜂蜇了一下！(-8 HP)');
+            let stingDmg = isKiller ? 12 : 9;
+            if (p.equipped.body && ITEMS[p.equipped.body.id]?.armorDefense) {
+              stingDmg *= (1 - ITEMS[p.equipped.body.id].armorDefense);
+            }
+            p.hp -= stingDmg;
+            createHitParticles(p.x, p.y, '#ffd54f');
+            showToast(isKiller ? '🐝 杀人蜂剧毒毒刺蜇伤了你！(-12 HP)' : '🐝 工蜂毒刺愤怒反击蜇击！(-9 HP)');
             ent.attackCooldown = 1.3;
           }
         }
@@ -6540,7 +6679,22 @@ function updateEntities(dt, isDark) {
     // 23. Catcoons (Deciduous forest friends, chasing bugs, coughing gifts)
     if (ent.type === 'catcoon') {
       ent.tailTick = (ent.tailTick || 0) + dt * 6;
-      if (ent.isFriend && ent.friendTimer > 0) {
+      if (ent.target && ent.aggroTimer > 0) {
+        ent.aggroTimer -= dt;
+        const d = dist(p.x, p.y, ent.x, ent.y);
+        const a = Math.atan2(p.y - ent.y, p.x - ent.x);
+        ent.x += Math.cos(a) * 110 * dt;
+        ent.y += Math.sin(a) * 110 * dt;
+        if (d < 45) {
+          ent.attackCooldown = (ent.attackCooldown || 0) - dt;
+          if (ent.attackCooldown <= 0) {
+            audio.playHit();
+            p.hp -= 25;
+            showToast('🐱 浣熊猫受惊弓爪猛烈反击！(-25 HP)');
+            ent.attackCooldown = 1.5;
+          }
+        }
+      } else if (ent.isFriend && ent.friendTimer > 0) {
         ent.friendTimer -= dt;
         const d = dist(p.x, p.y, ent.x, ent.y);
         if (d > 60) {
@@ -6787,14 +6941,15 @@ function updateHUD() {
 function renderClock() {
   clockCtx.clearRect(0, 0, 84, 84);
   const cx = 42, cy = 42, r = 38;
+  const split = getTimePhaseSplit(state.season);
 
-  const dayAngle = (60 / 120) * Math.PI * 2;
-  const duskAngle = (25 / 120) * Math.PI * 2;
-  const nightAngle = (35 / 120) * Math.PI * 2;
+  const dayAngle = (split.daySegs / 16) * Math.PI * 2;
+  const duskAngle = (split.duskSegs / 16) * Math.PI * 2;
+  const nightAngle = (split.nightSegs / 16) * Math.PI * 2;
 
   let start = -Math.PI / 2;
 
-  // Day wedge
+  // 1. Day wedge (Gold)
   clockCtx.beginPath();
   clockCtx.moveTo(cx, cy);
   clockCtx.arc(cx, cy, r, start, start + dayAngle);
@@ -6802,7 +6957,7 @@ function renderClock() {
   clockCtx.fill();
   start += dayAngle;
 
-  // Dusk wedge
+  // 2. Dusk wedge (Red/Orange)
   clockCtx.beginPath();
   clockCtx.moveTo(cx, cy);
   clockCtx.arc(cx, cy, r, start, start + duskAngle);
@@ -6810,23 +6965,41 @@ function renderClock() {
   clockCtx.fill();
   start += duskAngle;
 
-  // Night wedge
+  // 3. Night wedge (Navy Blue / Deep Charcoal)
   clockCtx.beginPath();
   clockCtx.moveTo(cx, cy);
   clockCtx.arc(cx, cy, r, start, start + nightAngle);
-  clockCtx.fillStyle = '#1b1b2f';
+  clockCtx.fillStyle = '#1a1a2e';
   clockCtx.fill();
 
-  // Pointer Hand
+  // 4. 16 authentic Don't Starve clock segment tick marks
+  clockCtx.strokeStyle = 'rgba(0, 0, 0, 0.45)';
+  clockCtx.lineWidth = 1.2;
+  for (let i = 0; i < 16; i++) {
+    const tickA = -Math.PI / 2 + (i / 16) * Math.PI * 2;
+    clockCtx.beginPath();
+    clockCtx.moveTo(cx + Math.cos(tickA) * (r - 7), cy + Math.sin(tickA) * (r - 7));
+    clockCtx.lineTo(cx + Math.cos(tickA) * r, cy + Math.sin(tickA) * r);
+    clockCtx.stroke();
+  }
+
+  // 5. Dial border rim
+  clockCtx.strokeStyle = '#3e2723';
+  clockCtx.lineWidth = 2.5;
+  clockCtx.beginPath();
+  clockCtx.arc(cx, cy, r, 0, Math.PI * 2);
+  clockCtx.stroke();
+
+  // 6. Pointer Hand
   const curAngle = -Math.PI / 2 + (state.timeInDay / state.dayLength) * Math.PI * 2;
   clockCtx.beginPath();
   clockCtx.moveTo(cx, cy);
-  clockCtx.lineTo(cx + Math.cos(curAngle) * (r - 6), cy + Math.sin(curAngle) * (r - 6));
+  clockCtx.lineTo(cx + Math.cos(curAngle) * (r - 5), cy + Math.sin(curAngle) * (r - 5));
   clockCtx.strokeStyle = '#ffffff';
   clockCtx.lineWidth = 3;
   clockCtx.stroke();
 
-  // Center Knob
+  // 7. Center Knob
   clockCtx.beginPath();
   clockCtx.arc(cx, cy, 5, 0, Math.PI * 2);
   clockCtx.fillStyle = '#ffeedb';
@@ -9522,14 +9695,12 @@ function drawEntity(ent) {
 
 function renderLighting() {
   const isCaves = state.worldLayer === 'caves';
-  const isDay = state.timeInDay < 60;
-  const isDusk = state.timeInDay >= 60 && state.timeInDay < 85;
-  const isNight = state.timeInDay >= 85;
+  const { isDay, isDusk, isNight, split } = getDayPhases();
   const isFullMoon = (state.day % 16 === 9 || state.day % 16 === 10) && isNight && !isCaves;
 
   if (isFullMoon) {
     ctx.save();
-    ctx.fillStyle = 'rgba(15, 32, 65, 0.45)';
+    ctx.fillStyle = 'rgba(15, 32, 65, 0.42)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.restore();
     return;
@@ -9539,69 +9710,131 @@ function renderLighting() {
   if (isCaves) {
     darknessAlpha = 0.98;
   } else if (isDusk) {
-    darknessAlpha = 0.2 + ((state.timeInDay - 60) / 25) * 0.45;
+    darknessAlpha = 0.15 + ((state.timeInDay - split.dayEnd) / split.duskSec) * 0.55;
   } else if (isNight) {
     darknessAlpha = 0.96;
   }
 
   if (darknessAlpha <= 0) return;
 
-  ctx.save();
-  ctx.fillStyle = (isNight || isCaves) ? `rgba(6, 4, 5, ${darknessAlpha})` : `rgba(180, 80, 20, ${darknessAlpha * 0.5})`;
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  // Initialize or resize dedicated offscreen lighting canvas
+  if (!state.lightCanvas) {
+    state.lightCanvas = document.createElement('canvas');
+    state.lightCtx = state.lightCanvas.getContext('2d');
+  }
+  if (state.lightCanvas.width !== canvas.width || state.lightCanvas.height !== canvas.height) {
+    state.lightCanvas.width = canvas.width;
+    state.lightCanvas.height = canvas.height;
+  }
 
-  if (isNight || isCaves) {
-    ctx.globalCompositeOperation = 'destination-out';
-    const px = state.player.x - state.camera.x;
-    const py = state.player.y - state.camera.y;
+  const lCtx = state.lightCtx;
+  lCtx.clearRect(0, 0, canvas.width, canvas.height);
 
-    let r = 0;
-    if (state.player.equipped.hand && ITEMS[state.player.equipped.hand.id]?.isLight) {
-      r = 160 + Math.random() * 8;
+  // 1. Fill offscreen buffer with darkness overlay
+  const darkColor = (isNight || isCaves) ? `rgba(6, 4, 5, ${darknessAlpha})` : `rgba(180, 80, 20, ${darknessAlpha * 0.55})`;
+  lCtx.fillStyle = darkColor;
+  lCtx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // 2. Punch out light circles via destination-out on OFFSCREEN buffer ONLY!
+  // (Crucial: This ensures main canvas graphics, player and ground are NEVER wiped to transparent background!)
+  lCtx.save();
+  lCtx.globalCompositeOperation = 'destination-out';
+
+  const lightSources = [];
+
+  // Player Hand-held & Amulet Light
+  const p = state.player;
+  const px = p.x - state.camera.x;
+  const py = p.y - state.camera.y;
+
+  let playerRadius = 0;
+  let isAmuletLight = false;
+  if (p.equipped.hand && ITEMS[p.equipped.hand.id]?.isLight) {
+    playerRadius = p.equipped.hand.id === 'lantern' ? 210 : 175;
+  }
+  const activeAmulet = (p.equipped.amulet && ITEMS[p.equipped.amulet.id]) ? p.equipped.amulet :
+                       ((p.equipped.body && ITEMS[p.equipped.body.id]?.equipSlot === 'amulet') ? p.equipped.body : null);
+  if (activeAmulet && activeAmulet.id === 'magiluminescence') {
+    playerRadius = Math.max(playerRadius, 200);
+    isAmuletLight = true;
+  }
+
+  if (playerRadius > 0) {
+    const flicker = Math.sin(Date.now() / 120) * 4;
+    const pr = playerRadius + flicker;
+    lightSources.push({ x: px, y: py, r: pr, color: isAmuletLight ? '#ffd54f' : '#ff9800' });
+
+    const g = lCtx.createRadialGradient(px, py, 25, px, py, pr);
+    g.addColorStop(0, 'rgba(0,0,0,1)');
+    g.addColorStop(0.75, 'rgba(0,0,0,0.85)');
+    g.addColorStop(1, 'rgba(0,0,0,0)');
+    lCtx.fillStyle = g;
+    lCtx.beginPath();
+    lCtx.arc(px, py, pr, 0, Math.PI * 2);
+    lCtx.fill();
+  }
+
+  // World light sources (Campfires, Firepits, Scaled Furnace, Dwarf Star, Light Flowers, Burning)
+  for (const ent of state.entities) {
+    const ex = ent.x - state.camera.x;
+    const ey = ent.y - state.camera.y;
+    if (ex < -260 || ex > canvas.width + 260 || ey < -260 || ey > canvas.height + 260) continue;
+
+    let entRadius = 0;
+    let lightCol = '#ff9800';
+
+    if ((ent.type === 'campfire' || ent.type === 'firepit') && ent.fuel > 0) {
+      entRadius = (ent.fuel / ent.maxFuel) * 130 + 80 + Math.sin(Date.now() / 100) * 5;
+    } else if (ent.type === 'scaled_furnace') {
+      entRadius = 220 + Math.sin(Date.now() / 150) * 4;
+      lightCol = '#ff7043';
+    } else if (ent.type === 'dwarf_star') {
+      entRadius = 240 + Math.sin(Date.now() / 80) * 6;
+      lightCol = '#fff9c4';
+    } else if (ent.type === 'light_flower' && ent.harvestable) {
+      entRadius = 115 + Math.sin(Date.now() / 200) * 4;
+      lightCol = '#80deea';
+    } else if (ent.burning && ent.burning > 0) {
+      entRadius = 135 + Math.sin(Date.now() / 90) * 6;
+      lightCol = '#ff5722';
     }
-    if (r > 0) {
-      const g = ctx.createRadialGradient(px, py, 20, px, py, r);
+
+    if (entRadius > 0) {
+      lightSources.push({ x: ex, y: ey, r: entRadius, color: lightCol });
+      const g = lCtx.createRadialGradient(ex, ey, 25, ex, ey, entRadius);
       g.addColorStop(0, 'rgba(0,0,0,1)');
+      g.addColorStop(0.75, 'rgba(0,0,0,0.85)');
       g.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(px, py, r, 0, Math.PI * 2);
-      ctx.fill();
-    }
-
-    // Campfires & Firepits
-    for (const ent of state.entities) {
-      if ((ent.type === 'campfire' || ent.type === 'firepit') && ent.fuel > 0) {
-        const ex = ent.x - state.camera.x;
-        const ey = ent.y - state.camera.y;
-        const cr = (ent.fuel / ent.maxFuel) * 160 + 70 + Math.random() * 8;
-        const g = ctx.createRadialGradient(ex, ey, 25, ex, ey, cr);
-        g.addColorStop(0, 'rgba(0,0,0,1)');
-        g.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(ex, ey, cr, 0, Math.PI * 2);
-        ctx.fill();
-      } else if (ent.type === 'light_flower' && ent.harvestable) {
-        const ex = ent.x - state.camera.x;
-        const ey = ent.y - state.camera.y;
-        const cr = 110 + Math.random() * 6;
-        const g = ctx.createRadialGradient(ex, ey, 15, ex, ey, cr);
-        g.addColorStop(0, 'rgba(0,0,0,0.95)');
-        g.addColorStop(1, 'rgba(0,0,0,0)');
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(ex, ey, cr, 0, Math.PI * 2);
-        ctx.fill();
-      }
+      lCtx.fillStyle = g;
+      lCtx.beginPath();
+      lCtx.arc(ex, ey, entRadius, 0, Math.PI * 2);
+      lCtx.fill();
     }
   }
-  // 12. Blueprint Placement Ghost
+
+  lCtx.restore();
+
+  // 3. Draw the darkness layer (with carved light holes) directly onto main canvas
+  ctx.drawImage(state.lightCanvas, 0, 0);
+
+  // 4. Draw warm organic ambient fire glow inside the illuminated areas!
+  for (const ls of lightSources) {
+    ctx.save();
+    const glow = ctx.createRadialGradient(ls.x, ls.y, 10, ls.x, ls.y, ls.r);
+    glow.addColorStop(0, ls.color === '#ffd54f' ? 'rgba(255, 220, 80, 0.22)' : 'rgba(255, 140, 30, 0.18)');
+    glow.addColorStop(0.7, 'rgba(255, 110, 20, 0.08)');
+    glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(ls.x, ls.y, ls.r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // 5. Blueprint Ghost (if active)
   if (state.blueprint && state.blueprint.active) {
     renderBlueprintGhost(ctx);
   }
-
-  ctx.restore();
 }
 
 // --- 12. Full Map & Mini-Map ---

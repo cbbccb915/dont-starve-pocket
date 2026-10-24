@@ -1130,8 +1130,18 @@ function onSlotClicked(source, index) {
     return;
   }
 
-  state.selectedSlot = { source, index };
   const def = ITEMS[slot.id];
+  // Mobile Quick-Equip & Quick-Unequip (Instantly equip/unequip gear on single tap!)
+  if (source === 'equip') {
+    useCurrentItem(source, index);
+    return;
+  }
+  if (def && def.equipSlot) {
+    useCurrentItem(source, index);
+    return;
+  }
+
+  state.selectedSlot = { source, index };
   const popover = document.getElementById('item-popover');
   document.getElementById('popover-title').innerText = `${def.icon} ${def.name}`;
   document.getElementById('popover-desc').innerText = def.desc;
@@ -3103,7 +3113,7 @@ function initWorld() {
   dropWorldItem('twig', state.player.x - 30, state.player.y + 10, 4);
   dropWorldItem('grass', state.player.x + 10, state.player.y - 30, 6);
   dropWorldItem('berry', state.player.x - 20, state.player.y - 20, 3);
-  addToPlayer('torch', 1);
+  state.player.equipped.hand = { id: 'torch', count: 1, durability: 75 };
 
   // Character Starting Items
   const charDef = CHARACTERS[state.character];
@@ -10273,7 +10283,7 @@ function restartWorld() {
   lastTime = performance.now();
   state.player.x = 1900;
   state.player.y = 1900;
-  state.player.equipped.hand = null;
+  state.player.equipped.hand = { id: 'torch', count: 1, durability: 75 };
   state.player.equipped.head = null;
   state.player.equipped.body = null;
   state.player.inventory = new Array(10).fill(null);
